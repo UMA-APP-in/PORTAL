@@ -7,8 +7,8 @@ const path = require('path');
 const archiver = require('archiver');
 
 const PHOTOS_DIR = process.env.UMA_PHOTOS_DIR || path.join(__dirname, '..', 'photos');
-const SUPABASE_URL = (process.env.SUPABASE_URL || '').replace(/\/$/, '');
-const SUPABASE_BUCKET = process.env.SUPABASE_BUCKET || 'student-photos';
+const SUPABASE_URL = (process.env.CARNE_SUPABASE_URL || process.env.SUPABASE_URL || '').replace(/\/$/, '');
+const SUPABASE_BUCKET = process.env.CARNE_SUPABASE_BUCKET || process.env.SUPABASE_BUCKET || 'student-photos';
 
 /**
  * Normalise a submission record coming from /api/admin/submissions

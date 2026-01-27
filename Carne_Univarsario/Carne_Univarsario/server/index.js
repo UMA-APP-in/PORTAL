@@ -60,6 +60,7 @@ const VALIDATOR_URL = ENV_VALIDATOR_URL || 'http://127.0.0.1:8000';
 
 // ------------ Database (Supabase Postgres) ------------
 const DB_URL =
+  process.env.CARNE_SUPABASE_DB_URL ||
   SUPABASE_DB_URL ||
   UMA_DATABASE_URL ||
   DATABASE_URL ||
