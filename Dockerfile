@@ -40,14 +40,11 @@ RUN python3 -m venv .venv
 RUN .venv/bin/pip install --upgrade pip
 RUN .venv/bin/pip install fastapi uvicorn pillow requests python-dotenv
 
+# Expose the dashboard port (which proxies others)
+# Render will automatically detect the port the app listens on
+
 # Final setup: move back to root
 WORKDIR /app
-
-# Expose the dashboard port (which proxies others)
-EXPOSE 3002
-
-# The port environment variable provided by Render
-ENV PORT=3002
 
 # Run the sequential starter
 CMD ["node", "runner.js"]
