@@ -1,0 +1,527 @@
+:root {
+    --primary: #e11d48;
+    /* Pink-600 */
+    --primary-dark: #be123c;
+    /* Pink-700 */
+    --bg-page: #f1f5f9;
+    /* Slate-100 */
+    --white: #ffffff;
+    --text-main: #0f172a;
+    /* Slate-900 */
+    --text-muted: #64748b;
+    /* Slate-500 */
+    --border: #e2e8f0;
+    /* Slate-200 */
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--bg-page);
+    color: var(--text-main);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Utlility */
+.hidden {
+    display: none !important;
+}
+
+/* Login Background Image */
+body.is-login {
+    padding: 0;
+    background: #000;
+}
+
+.login-bg {
+    position: fixed;
+    inset: 0;
+    background: url('/images/login-bg.png') center / cover no-repeat fixed;
+    filter: brightness(0.9);
+    z-index: -1;
+    pointer-events: none;
+}
+
+body:not(.is-login) .login-bg {
+    display: none;
+}
+
+/* Loading Overlay */
+.loading-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+.loading-card {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 20px;
+    padding: 40px 50px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+}
+
+.spinner {
+    width: 50px;
+    height: 50px;
+    border: 4px solid var(--border);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.loading-text {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-main);
+}
+
+/* Login Section */
+.login-wrapper {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.login-card {
+    background: var(--white);
+    padding: 40px;
+    border-radius: 20px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+    width: 100%;
+    max-width: 400px;
+    text-align: center;
+}
+
+.brand-logo {
+    width: 50px;
+    height: 50px;
+    background: var(--primary);
+    color: white;
+    font-weight: 900;
+    font-size: 24px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 16px;
+}
+
+.brand h1 {
+    font-size: 1.5rem;
+    font-weight: 800;
+    margin-bottom: 24px;
+    color: var(--text-main);
+}
+
+.input-group {
+    text-align: left;
+    margin-bottom: 16px;
+}
+
+.input-group label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.input-group input {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    font-size: 1rem;
+    font-family: inherit;
+    transition: 0.2s;
+}
+
+.input-group input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(225, 29, 72, 0.1);
+}
+
+.btn-primary {
+    width: 100%;
+    padding: 14px;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: 0.2s;
+    margin-top: 10px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.btn-primary:hover {
+    background: var(--primary-dark);
+}
+
+.error-msg {
+    color: #ef4444;
+    background: #fee2e2;
+    padding: 10px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    margin-bottom: 16px;
+    font-weight: 500;
+}
+
+/* Dashboard Section */
+.dashboard-wrapper {
+    padding: 40px 20px;
+    flex: 1;
+}
+
+.container {
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.student-header {
+    background: #D81B60;
+    /* The specific red from the image */
+    background: linear-gradient(90deg, #D81B60 0%, #C2185B 100%);
+    color: white;
+    padding: 30px;
+    border-radius: 20px 20px 10px 10px;
+    /* Top rounded slightly more */
+    box-shadow: 0 10px 30px rgba(216, 27, 96, 0.2);
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 16px;
+}
+
+.avatar-circle {
+    width: 60px;
+    height: 60px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    font-weight: 800;
+    color: white;
+}
+
+.student-name h1 {
+    font-size: 1.8rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin: 0;
+}
+
+.badge {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.badge.old {
+    background: #fde047;
+    /* yellow-300 */
+    color: #854d0e;
+    /* yellow-800 */
+}
+
+.badge.new {
+    background: #86efac;
+    /* green-300 */
+    color: #14532d;
+    /* green-900 */
+}
+
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+}
+
+.info-card {
+    background: var(--white);
+    padding: 20px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.info-card .label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+    text-transform: capitalize;
+}
+
+.info-card .value {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--text-main);
+    word-break: break-word;
+}
+
+.btn-secondary {
+    background: white;
+    border: 1px solid var(--border);
+    padding: 10px 24px;
+    font-weight: 600;
+    border-radius: 8px;
+    cursor: pointer;
+    color: var(--text-muted);
+}
+
+.btn-secondary:hover {
+    background: #f8fafc;
+    color: var(--text-main);
+}
+
+@media (max-width: 640px) {
+    .student-header {
+        flex-direction: column;
+        text-align: center;
+        padding: 24px;
+    }
+
+    .student-name h1 {
+        font-size: 1.4rem;
+    }
+
+    .info-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .services-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Services Section */
+.services-section {
+    margin-top: 32px;
+}
+
+.services-title {
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: var(--text-main);
+    margin-bottom: 16px;
+}
+
+.services-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+}
+
+.service-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    border-radius: 16px;
+    padding: 24px;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.3s ease;
+    box-shadow: 0 8px 24px rgba(102, 126, 234, 0.25);
+}
+
+.service-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 32px rgba(102, 126, 234, 0.35);
+}
+
+.service-icon {
+    font-size: 2.5rem;
+    margin-bottom: 12px;
+}
+
+.service-name {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: white;
+    margin-bottom: 8px;
+}
+
+.service-desc {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.85);
+    line-height: 1.4;
+}
+
+/* Pink variant for Carnet */
+.service-card-pink {
+    background: linear-gradient(135deg, #ec4899 0%, #be185d 100%);
+    box-shadow: 0 8px 24px rgba(236, 72, 153, 0.25);
+}
+
+.service-card-pink:hover {
+    box-shadow: 0 12px 32px rgba(236, 72, 153, 0.35);
+}
+
+/* Additions for Dashboard Improvements */
+.service-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+}
+
+.service-card {
+    width: 100%;
+}
+
+.details-link {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    text-decoration: none;
+    font-weight: 600;
+    transition: color 0.2s;
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+
+.details-link:hover {
+    color: var(--primary);
+    background: #fff0f5;
+}
+
+/* Modal */
+.modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(4px);
+    z-index: 11000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-card {
+    background: var(--white);
+    padding: 30px;
+    border-radius: 20px;
+    text-align: center;
+    max-width: 400px;
+    width: 90%;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+    animation: popIn 0.3s ease;
+}
+
+.modal-icon {
+    font-size: 3rem;
+    margin-bottom: 16px;
+    display: block;
+}
+
+.modal-card h3 {
+    font-size: 1.4rem;
+    font-weight: 800;
+    margin-bottom: 12px;
+    color: var(--text-main);
+}
+
+.modal-card p {
+    color: var(--text-muted);
+    font-size: 1rem;
+    line-height: 1.5;
+}
+
+@keyframes popIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.modal-large {
+    max-width: 700px;
+    text-align: left;
+}
+
+.details-content {
+    margin-top: 15px;
+    max-height: 60vh;
+    overflow-y: auto;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 10px;
+    background: #f9fafb;
+}
+
+.details-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+.details-table th,
+.details-table td {
+    padding: 10px 12px;
+    text-align: left;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.details-table th {
+    background: #f3f4f6;
+    font-weight: 700;
+    color: #111827;
+    position: sticky;
+    top: 0;
+}
+
+.details-table tr:last-child td {
+    border-bottom: none;
+}
+
+.muted-text {
+    color: #6b7280;
+    font-size: 0.95rem;
+    margin-bottom: 10px;
+}

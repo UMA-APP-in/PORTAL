@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard del Estudiante</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body class="is-login">
+
+    <!-- Background image -->
+    <div class="login-bg" aria-hidden="true"></div>
+
+    <!-- Loading Overlay (handled by js/loader.js) -->
+
+    <!-- LOGIN SECTION -->
+    <div id="login-section" class="login-wrapper">
+        <div class="login-card">
+            <div class="brand">
+                <div class="brand-logo">U</div>
+                <h1>Portal del Estudiante</h1>
+            </div>
+
+            <form id="login-form">
+                <div class="input-group">
+                    <label for="codigo">Código</label>
+                    <input type="text" id="codigo" placeholder="Ingresa tu código" required>
+                </div>
+                <div class="input-group">
+                    <label for="dni">DNI</label>
+                    <input type="password" id="dni" placeholder="Ingresa tu DNI" required>
+                </div>
+
+                <div id="login-error" class="error-msg hidden"></div>
+
+                <button type="submit" class="btn-primary" id="btn-login">
+                    <span id="btn-text">Ingresar</span>
+                    <span id="btn-loader" class="loader hidden"></span>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- DASHBOARD SECTION -->
+    <div id="dashboard-section" class="dashboard-wrapper hidden">
+        <div class="container">
+            <!-- Header Card -->
+            <div class="student-header">
+                <div class="avatar-circle">
+                    <span id="avatar-initial">S</span>
+                </div>
+                <div class="student-name">
+                    <h1 id="display-name">CARGANDO...</h1>
+                </div>
+            </div>
+
+            <!-- Info Grid -->
+            <div class="info-grid">
+                <!-- Card 1: Código -->
+                <div class="info-card">
+                    <div class="label">Código</div>
+                    <div class="value" id="val-codigo">--</div>
+                </div>
+
+                <!-- Card 2: DNI -->
+                <div class="info-card">
+                    <div class="label">DNI</div>
+                    <div class="value" id="val-dni">--</div>
+                </div>
+
+                <!-- Card 3: Programa -->
+                <div class="info-card">
+                    <div class="label">Programa</div>
+                    <div class="value" id="val-programa">--</div>
+                </div>
+
+                <!-- Card 4: Facultad -->
+                <div class="info-card">
+                    <div class="label">Facultad</div>
+                    <div class="value" id="val-facultad">--</div>
+                </div>
+
+                <!-- Card 5: Periodo -->
+                <div class="info-card">
+                    <div class="label">Periodo</div>
+                    <div class="value" id="val-periodo">--</div>
+                </div>
+
+                <!-- Card 6: Modalidad -->
+                <div class="info-card">
+                    <div class="label">Modalidad</div>
+                    <div class="value" id="val-modalidad">--</div>
+                </div>
+
+                <!-- Card 7: Correo -->
+                <div class="info-card">
+                    <div class="label">Correo</div>
+                    <div class="value" id="val-correo">--</div>
+                </div>
+
+                <!-- Card 8: Teléfono -->
+                <div class="info-card">
+                    <div class="label">Teléfono</div>
+                    <div class="value" id="val-telefono">--</div>
+                </div>
+            </div>
+            <!-- Service Buttons -->
+            <div class="services-section">
+                <h2 class="services-title">Servicios Disponibles</h2>
+                <div class="services-grid">
+                    <!-- Rectification Wrapper -->
+                    <div class="service-wrapper">
+                        <button id="btn-rectification" class="service-card">
+                            <div class="service-icon">📝</div>
+                            <div class="service-name">Rectificación de Cursos</div>
+                            <div class="service-desc">Cambiar horarios y secciones de tus cursos matriculados</div>
+                        </button>
+                        <a href="#" id="link-rect-details" class="details-link hidden">Ver detalles</a>
+                    </div>
+
+                    <!-- Carnet Wrapper -->
+                    <div class="service-wrapper">
+                        <button id="btn-carnet" class="service-card service-card-pink">
+                            <div class="service-icon">🎓</div>
+                            <div class="service-name">Carné Universitario</div>
+                            <div class="service-desc">Subir foto y gestionar tu carné universitario</div>
+                        </button>
+                        <a href="#" id="link-carnet-details" class="details-link hidden">Ver detalles</a>
+                    </div>
+                </div>
+            </div>
+
+            <div style="text-align: center; margin-top: 2rem;">
+                <button id="btn-logout" class="btn-secondary">Cerrar Sesión</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden form for rectification login -->
+    <form id="rectification-form" method="POST" action="/services/rectification/login" style="display:none;">
+        <input type="hidden" name="codigo" id="rect-codigo">
+        <input type="hidden" name="dni" id="rect-dni">
+    </form>
+
+    <!-- Modal for "Already Submitted" -->
+    <div id="modal-submitted" class="modal-backdrop hidden">
+        <div class="modal-card">
+            <div class="modal-icon">✅</div>
+            <h3>Solicitud Enviada</h3>
+            <p>Tu solicitud fue enviada correctamente. Ya no puedes ingresar nuevamente.</p>
+            <button id="btn-close-modal" class="btn-primary" style="margin-top: 20px;">Entendido</button>
+        </div>
+    </div>
+
+    <!-- Modal for "Details" -->
+    <div id="modal-details" class="modal-backdrop hidden">
+        <div class="modal-card modal-large">
+            <h3>Detalle de Rectificación</h3>
+            <p class="muted-text">Resumen de los cambios solicitados:</p>
+
+            <div id="details-content" class="details-content">
+                <!-- Dynamically populated table -->
+            </div>
+
+            <button id="btn-close-details" class="btn-primary" style="margin-top: 20px;">Cerrar</button>
+        </div>
+    </div>
+
+    <script src="js/loader.js"></script>
+    <script src="js/script.js"></script>
+</body>
+
+</html>

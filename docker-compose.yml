@@ -1,0 +1,43 @@
+services:
+  dashboard:
+    build: ./dashboard
+    container_name: portal-dashboard
+    restart: unless-stopped
+    expose:
+      - "3002"
+
+  rectification:
+    build: ./rectification
+    container_name: portal-rectification
+    restart: unless-stopped
+    expose:
+      - "3001"
+
+  carne:
+    build: ./Carne_Univarsario
+    container_name: portal-carne
+    restart: unless-stopped
+    expose:
+      - "5000"
+    environment:
+      - PHOTO_API_URL=http://carne-photo-api:8000
+
+  carne-photo-api:
+    build: ./Carne_Univarsario/photo-api
+    container_name: portal-carne-photo-api
+    restart: unless-stopped
+    expose:
+      - "8000"
+
+  nginx:
+    image: nginx:alpine
+    container_name: portal-nginx
+    depends_on:
+      - dashboard
+      - rectification
+      - carne
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    restart: unless-stopped
