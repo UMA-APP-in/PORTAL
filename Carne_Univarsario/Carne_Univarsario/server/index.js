@@ -1,0 +1,1360 @@
+// ---------- ENV + CORE IMPORTS ----------
+const path = require('path');
+
+// Load .env from project root:  <root>/.env
+require('dotenv').config({
+  path: path.join(__dirname, '..', '.env'),
+});
+
+const fs = require('fs');
+const fsp = fs.promises;
+
+const express = require('express');
+const session = require('express-session');
+const cookieParser = require('cookie-parser');
+const cors = require('cors');
+const multer = require('multer');
+const FormData = require('form-data');
+const axios = require('axios');
+const { Pool } = require('pg');
+
+// helper that builds rich SUNEDU ZIPs
+const { createAdminZip } = require('./adminZipHelper');
+
+const {
+  studentLogin,
+  setStudentAccessToken,
+  setStudentRefreshToken,
+  studentFetch,
+  adminLogin,
+  adminGetStudent,
+  adminGetCourseSchedules,
+  adminGetTeachers,
+  adminGetTeacherSchedule,
+} = require('./uma');
+
+const {
+  PORT = 5000,
+  SESSION_SECRET = 'change-this',
+  VALIDATOR_URL: ENV_VALIDATOR_URL,
+  UMA_BASE_URL,
+  UMA_DATABASE_URL,
+  DATABASE_URL,
+  POSTGRES_URL,
+  SUPABASE_DB_URL,
+  ADMIN_EMAIL,
+  ADMIN_PASS,
+  // carnet payment env vars
+  CARNET_API_URL,
+  CARNET_API_USER, // not used directly now, kept for clarity
+  CARNET_API_PASS, // not used directly now, kept for clarity
+  CARNET_CONCEPT_CODE,
+  CARNET_PERIOD,
+} = process.env;
+
+// Normalize UMA base URL (no trailing slash)
+const UMA_BASE = (UMA_BASE_URL || '').trim().replace(/\/$/, '');
+
+// Python validator URL (FastAPI)
+const VALIDATOR_URL = ENV_VALIDATOR_URL || 'http://127.0.0.1:8000';
+
+// ------------ Database (Supabase Postgres) ------------
+const DB_URL =
+  SUPABASE_DB_URL ||
+  UMA_DATABASE_URL ||
+  DATABASE_URL ||
+  POSTGRES_URL ||
+  '';
+
+let DB_ENABLED = false;
+let pool = null;
+
+if (DB_URL) {
+  const safeDbUrl = DB_URL.replace(/:\/\/([^:]+):[^@]+@/, '://$1:****@');
+  console.log('[db] Using Postgres database at:', safeDbUrl);
+
+  pool = new Pool({
+    connectionString: DB_URL,
+    ssl: { rejectUnauthorized: false }, // required for Supabase
+  });
+
+  pool.on('error', (err) => {
+    console.error('[db] pool error', err);
+  });
+
+  DB_ENABLED = true;
+} else {
+  console.warn(
+    '[db] No database URL configured. Falling back to submissions.json only.'
+  );
+}
+
+const app = express();
+const upload = multer({ storage: multer.memoryStorage() });
+
+// ---------- paths ----------
+const ROOT_DIR = path.join(__dirname, '..');
+// Python validator writes here: photo/photos/{approved|rejected}
+const PHOTOS_ROOT = path.join(ROOT_DIR, 'photo', 'photos');
+const SUBMISSIONS_PATH = path.join(ROOT_DIR, 'photo', 'submissions.json');
+
+// directory for generated SUNEDU ZIP files
+const ZIP_OUTPUT_DIR = path.join(ROOT_DIR, 'tmp_zips');
+if (!fs.existsSync(ZIP_OUTPUT_DIR)) {
+  fs.mkdirSync(ZIP_OUTPUT_DIR, { recursive: true });
+}
+
+// ---------- submissions helpers ----------
+async function loadSubmissionsFromDb() {
+  if (!DB_ENABLED || !pool) return [];
+
+  const q = `
+    select
+      dni,
+      codigo,
+      name,
+      email,
+      facultad,
+      carrera,
+      category,
+      issues,
+      supabase_url,
+      photo_filename,
+      sunedu_status,
+      updated_at
+    from uma_submissions
+    order by updated_at desc
+  `;
+
+  const { rows } = await pool.query(q);
+
+  return rows.map((row) => {
+    const issues = Array.isArray(row.issues)
+      ? row.issues
+      : row.issues
+        ? row.issues
+        : [];
+    const category = row.category || 'approved';
+    const photoUrl =
+      row.supabase_url ||
+      (row.photo_filename ? `/photos/${category}/${row.photo_filename}` : null);
+
+    return {
+      dni: row.dni,
+      code: row.codigo,
+      codigo: row.codigo,
+      name: row.name,
+      email: row.email,
+      facultad: row.facultad,
+      carrera: row.carrera,
+      category,
+      issues,
+      supabase_url: row.supabase_url,
+      photo_filename: row.photo_filename,
+      suneduStatus: row.sunedu_status,
+      updatedAt: row.updated_at,
+      photoUrl,
+    };
+  });
+}
+
+async function loadSubmissionsFromFile() {
+  try {
+    const txt = await fsp.readFile(SUBMISSIONS_PATH, 'utf8');
+    const parsed = JSON.parse(txt);
+    if (Array.isArray(parsed)) return parsed;
+    if (Array.isArray(parsed.submissions)) return parsed.submissions;
+    return [];
+  } catch (err) {
+    if (err.code === 'ENOENT') return [];
+    console.error('[submissions] read error:', err);
+    return [];
+  }
+}
+
+async function saveSubmissionsToFile(list) {
+  try {
+    await fsp.mkdir(path.dirname(SUBMISSIONS_PATH), { recursive: true });
+    await fsp.writeFile(
+      SUBMISSIONS_PATH,
+      JSON.stringify({ submissions: list }, null, 2),
+      'utf8'
+    );
+  } catch (err) {
+    console.error('[submissions] write error:', err);
+  }
+}
+
+async function loadSubmissions() {
+  if (DB_ENABLED) {
+    return loadSubmissionsFromDb();
+  }
+  return loadSubmissionsFromFile();
+}
+
+async function checkStudentAlreadySubmitted(dni) {
+  if (!dni) return null;
+  const list = await loadSubmissions();
+  // Ensure we compare strings
+  return list.find((s) => String(s.dni).trim() === String(dni).trim());
+}
+
+async function upsertSubmissionInDb(submission) {
+  if (!DB_ENABLED || !pool) return;
+
+  const issues = Array.isArray(submission.issues)
+    ? submission.issues
+    : submission.issues
+      ? submission.issues
+      : [];
+
+  const suneduStatus = submission.suneduStatus || 'Pendiente';
+
+  const q = `
+    insert into uma_submissions (
+      dni,
+      codigo,
+      name,
+      email,
+      facultad,
+      carrera,
+      category,
+      issues,
+      supabase_url,
+      photo_filename,
+      sunedu_status,
+      updated_at
+    ) values (
+      $1, $2, $3, $4, $5, $6, $7,
+      $8, $9, $10, $11, now()
+    )
+    on conflict (dni) do update set
+      codigo = excluded.codigo,
+      name = excluded.name,
+      email = excluded.email,
+      facultad = excluded.facultad,
+      carrera = excluded.carrera,
+      category = excluded.category,
+      issues = excluded.issues,
+      supabase_url = excluded.supabase_url,
+      photo_filename = excluded.photo_filename,
+      sunedu_status = excluded.sunedu_status,
+      updated_at = now()
+  `;
+
+  const params = [
+    submission.dni,
+    submission.code || submission.codigo || null,
+    submission.name || null,
+    submission.email || null,
+    submission.facultad || null,
+    submission.carrera || submission.esp || null,
+    submission.category || 'approved',
+    issues,
+    submission.supabase_url || null,
+    submission.filename || submission.photo_filename || null,
+    suneduStatus,
+  ];
+
+  await pool.query(q, params);
+}
+
+// Find the approved JPG for a given DNI:
+//   photo/photos/approved/<dni>.jpg
+function findApprovedPhotoByDni(dni) {
+  if (!dni) return null;
+  const dirApproved = path.join(PHOTOS_ROOT, 'approved');
+
+  const jpg = path.join(dirApproved, `${dni}.jpg`);
+  if (fs.existsSync(jpg)) return jpg;
+
+  try {
+    const files = fs.readdirSync(dirApproved);
+    const hit = files.find((name) => name.startsWith(String(dni)));
+    if (hit) return path.join(dirApproved, hit);
+  } catch (err) {
+    // dir may not exist yet
+  }
+
+  return null;
+}
+
+async function deletePhotoFile(absPath) {
+  if (!absPath) return;
+  try {
+    const abs = path.resolve(absPath);
+    const root = path.resolve(PHOTOS_ROOT);
+    if (!abs.startsWith(root)) {
+      console.warn('[delete] refused outside photos root:', abs);
+      return;
+    }
+    await fsp.unlink(abs);
+  } catch (err) {
+    if (err.code !== 'ENOENT') console.warn('[delete] unlink error:', err);
+  }
+}
+
+async function deleteSubmissionsInDb(dniList) {
+  if (!DB_ENABLED || !pool || !Array.isArray(dniList) || !dniList.length) {
+    return 0;
+  }
+  const q = `
+    delete from uma_submissions
+    where dni = any($1)
+  `;
+  const { rowCount } = await pool.query(q, [dniList]);
+  return rowCount || 0;
+}
+
+async function markSuneduSentInDb(dniList) {
+  if (!DB_ENABLED || !pool || !Array.isArray(dniList) || !dniList.length) {
+    return 0;
+  }
+  const q = `
+    update uma_submissions
+    set sunedu_status = 'Enviado',
+        updated_at = now()
+    where dni = any($1)
+  `;
+  const { rowCount } = await pool.query(q, [dniList]);
+  return rowCount || 0;
+}
+
+// ---------- UMA helper: retry on 401/403 ----------
+async function callUmaWithAdminRetry(fn, args = {}) {
+  let firstError = null;
+
+  try {
+    // first attempt
+    return await fn(args);
+  } catch (err) {
+    const status = err?.response?.status || err?.status;
+    const isAuthError = status === 401 || status === 403;
+
+    if (!isAuthError || !ADMIN_EMAIL || !ADMIN_PASS) {
+      throw err;
+    }
+
+    firstError = err;
+  }
+
+  console.warn(
+    '[uma] got 401/403. Calling adminLogin() once to refresh token and retry...'
+  );
+
+  try {
+    await adminLogin({ email: ADMIN_EMAIL, password: ADMIN_PASS });
+  } catch (loginErr) {
+    console.error(
+      '[uma] adminLogin retry failed:',
+      loginErr.response?.data || loginErr.message || loginErr
+    );
+    throw firstError;
+  }
+
+  try {
+    return await fn(args);
+  } catch (err) {
+    const status = err?.response?.status || err?.status;
+    console.error(
+      '[uma] request failed again after adminLogin. status=',
+      status,
+      'body=',
+      err.response?.data || err.message || err
+    );
+    throw err;
+  }
+}
+
+// ---------- UMA admin token helper (Bearer) ----------
+async function getUmaAdminToken() {
+  if (!ADMIN_EMAIL || !ADMIN_PASS) {
+    console.error('[uma-admin-token] ADMIN_EMAIL or ADMIN_PASS missing in .env');
+    return null;
+  }
+
+  try {
+    const r = await adminLogin({ email: ADMIN_EMAIL, password: ADMIN_PASS });
+
+    const root = r.data || {};
+    const data = root.data || root;
+    const token = data.access_token || root.access_token || null;
+
+    if (!token) {
+      console.error(
+        '[uma-admin-token] UMA admin login did not return access_token:',
+        root
+      );
+      return null;
+    }
+
+    console.log(
+      '[uma-admin-token] got access_token starting with:',
+      token.slice(0, 20),
+      '...'
+    );
+    return token;
+  } catch (err) {
+    console.error(
+      '[uma-admin-token] UMA admin login failed:',
+      err.response?.data || err.message || err
+    );
+    return null;
+  }
+}
+
+// ---------- UMA student data helper ----------
+// Call the UMA "student data" API directly (grupoa/student) using admin token.
+// This is the API you see in Postman that returns student information.
+async function fetchStudentFromUma({ codigo }) {
+  if (!UMA_BASE) {
+    console.warn(
+      '[student-uma] UMA_BASE_URL not configured. Cannot fetch student profile.'
+    );
+    return null;
+  }
+
+  const adminToken = await getUmaAdminToken();
+  if (!adminToken) {
+    return null;
+  }
+
+  const codeStr = codigo.toString().trim();
+  const url = `${UMA_BASE}/grupoa/student`; // adjust if your UMA path is different
+
+  // Body is both "code" and "codigo" to be safe.
+  const body = { code: codeStr, codigo: codeStr };
+
+  console.log('[student-uma] POST', url, 'body =', body);
+
+  try {
+    const resp = await axios.post(url, body, {
+      headers: {
+        Authorization: `Bearer ${adminToken}`,
+      },
+      timeout: 15000,
+      validateStatus: () => true,
+    });
+
+    const httpStatus = resp.status;
+    const payload = resp.data || {};
+
+    console.log(
+      '[student-uma] HTTP',
+      httpStatus,
+      '- raw payload:',
+      JSON.stringify(payload).slice(0, 300) + '...'
+    );
+
+    if (httpStatus < 200 || httpStatus >= 300) {
+      console.error(
+        '[student-uma] unexpected status from student API:',
+        httpStatus,
+        payload
+      );
+      return null;
+    }
+
+    // Many UMA APIs wrap result as { status, message, data: {...} } or data: [..]
+    let student = payload.data ?? payload;
+    return student;
+  } catch (err) {
+    console.error('[student-uma] error calling UMA student API:', err);
+    return null;
+  }
+}
+
+// ---------- Carnet payment helper ----------
+// Calls grupoa/carnet_payments with UMA admin Bearer token and checks
+// there is a row with:
+//   codAlu === codigo
+//   period === CARNET_PERIOD (if set)
+//   number_ticket not empty
+async function checkCarnetPayment({ codigo, dni }) {
+  const url = (CARNET_API_URL || '').trim();
+
+  if (!url) {
+    console.warn(
+      '[carnet] CARNET_API_URL is not configured. Skipping carnet payment check.'
+    );
+    return { allowed: true, reason: 'no_config' };
+  }
+
+  const conceptCode = (CARNET_CONCEPT_CODE || '181035').toString().trim();
+  const periodFilter = (CARNET_PERIOD || '').toString().trim() || null;
+
+  try {
+    const wantedCodigo = codigo.toString().trim();
+    const wantedDni = (dni || '').toString().trim() || null;
+
+    const body = { codigo: conceptCode };
+    if (wantedDni) body.dni = wantedDni;
+    if (periodFilter) body.period = periodFilter;
+
+    const adminToken = await getUmaAdminToken();
+    if (!adminToken) {
+      return {
+        allowed: false,
+        reason:
+          'No se pudo verificar el pago del carné (no se pudo obtener token de UMA).',
+      };
+    }
+
+    console.log('[carnet] POST', url, 'body =', body);
+
+    const resp = await axios.post(url, body, {
+      headers: {
+        Authorization: `Bearer ${adminToken}`,
+      },
+      timeout: 15000,
+      validateStatus: () => true,
+    });
+
+    const httpStatus = resp.status;
+    const payload = resp.data || {};
+    const rows = Array.isArray(payload.data) ? payload.data : [];
+
+    console.log(
+      '[carnet] HTTP',
+      httpStatus,
+      '- received',
+      rows.length,
+      'row(s) from carnet_payments'
+    );
+
+    if (httpStatus < 200 || httpStatus >= 300) {
+      console.error(
+        '[carnet] unexpected status from carnet API:',
+        httpStatus,
+        payload
+      );
+      return {
+        allowed: false,
+        reason:
+          'No se pudo verificar el pago del carné (error en el servicio remoto).',
+        raw: payload,
+      };
+    }
+
+    const periodFilterStr = periodFilter ? periodFilter.toString().trim() : null;
+
+    const match = rows.find((row) => {
+      const codAlu = (row.codAlu || '').toString().trim();
+      const rowDni = (row.dni || '').toString().trim();
+      const ticket = (row.number_ticket || '').toString().trim();
+      const period = (row.period || '').toString().trim();
+
+      if (!ticket) return false;
+      if (codAlu !== wantedCodigo) return false;
+      if (periodFilterStr && period !== periodFilterStr) return false;
+
+      if (wantedDni && rowDni && rowDni !== wantedDni) {
+        console.log('[carnet] codAlu match but DNI mismatch', {
+          codAlu,
+          rowDni,
+          wantedDni,
+        });
+      }
+
+      return true;
+    });
+
+    if (match) {
+      console.log('[carnet] payment match found:', match);
+      return { allowed: true, reason: 'ok', row: match, raw: payload };
+    }
+
+    console.log(
+      '[carnet] no matching payment found for codigo =',
+      wantedCodigo,
+      'dni =',
+      wantedDni
+    );
+    return {
+      allowed: false,
+      reason:
+        'No se encontró un pago válido de carné universitario para este estudiante.',
+      raw: payload,
+    };
+  } catch (err) {
+    console.error('[carnet] error calling carnet API:', err);
+    return {
+      allowed: false,
+      reason:
+        'No se pudo verificar el pago del carné. Intenta nuevamente más tarde.',
+      error: err.message || String(err),
+    };
+  }
+}
+
+// ---------- middleware ----------
+app.use(cors({ origin: true, credentials: true }));
+app.use(express.json());
+app.use(cookieParser());
+app.use(
+  session({
+    name: 'carne.sid',
+    secret: SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    cookie: { httpOnly: true, sameSite: 'lax' },
+  })
+);
+
+// static assets
+app.use(express.static(path.join(ROOT_DIR, 'public')));
+app.use('/photos', express.static(PHOTOS_ROOT));
+app.use('/downloads', express.static(ZIP_OUTPUT_DIR));
+
+// ---------- Rectification payment helper ----------
+async function checkRectificationPayment({ codigo, dni }) {
+  // Use environment variable or fallback to UMA_BASE + standard path
+  // In app.js: process.env.BOLETA_API_URL || (DATA_URL + "/rectification_payments");
+  // DATA_URL is usually UMA_BASE + /grupoa
+  const url = process.env.RECTIFICATION_API_URL || `${UMA_BASE}/grupoa/rectification_payments`;
+
+  const periodId = (process.env.CURRENT_PERIOD_ID || '20261').replace(/[^0-9]/g, '');
+
+  try {
+    const adminToken = await getUmaAdminToken();
+    if (!adminToken) {
+      return { allowed: false, reason: 'Error interno (auth).' };
+    }
+
+    // The API usually takes { period: ... } and returns a list of *all* payments for that period?
+    // Or we might need to filter.
+    // Based on app.js: it calls postAdminWithPeriodFallback(req, BOLETA_URL, {}, rawPeriod, ...)
+    // which sends { period: rawPeriod } in the body.
+
+    // Let's do exactly what app.js does: send empty body + period
+    console.log('[rectification] POST', url, { period: periodId });
+
+    const resp = await axios.post(
+      url,
+      { period: periodId },
+      {
+        headers: { Authorization: `Bearer ${adminToken}` },
+        validateStatus: () => true
+      }
+    );
+
+    if (resp.status >= 300) {
+      console.error('[rectification] API error', resp.status, resp.data);
+      return { allowed: false, reason: 'Error al consultar pagos de rectificación.' };
+    }
+
+    // Parse the response
+    let rows = [];
+    const payload = resp.data || {};
+    if (Array.isArray(payload)) rows = payload;
+    else if (Array.isArray(payload.data)) rows = payload.data;
+    else if (Array.isArray(payload.rows)) rows = payload.rows;
+    else if (Array.isArray(payload.result)) rows = payload.result;
+
+
+    // Filter for this student
+    const normalizeIdKey = (s) => String(s || "").replace(/[^0-9]/g, "");
+    const myCode = normalizeIdKey(codigo);
+    const myDni = normalizeIdKey(dni);
+
+    const match = rows.find((r) => {
+      const rCode = normalizeIdKey(r.codAlu || r.codigo || r.code || r.c_codalu);
+      const rDni = normalizeIdKey(r.dni || "");
+
+      const sameStudent = (myCode && rCode && rCode === myCode) || (myDni && rDni && rDni === myDni);
+      // Also check period if the row has it, though we asked for a specific period
+      return sameStudent;
+    });
+
+    if (match) {
+      // Also check if they have a ticket number
+      const ticket = match.number_ticket || match.numberTicket || match.boleta || match.numBoleta || match.nroBoleta;
+      if (ticket) {
+        return { allowed: true, reason: 'ok', match };
+      }
+    }
+
+    return { allowed: false, reason: 'No se encontró pago de rectificación para este periodo.' };
+
+  } catch (err) {
+    console.error('[rectification] check error:', err);
+    return { allowed: false, reason: 'Error de conexión.' };
+  }
+}
+
+// ---------- STUDENT LOGIN ----------
+app.post('/api/student/login', async (req, res) => {
+  try {
+    const { codigo, dni } = req.body;
+    if (!codigo || !dni) {
+      return res
+        .status(400)
+        .json({ ok: false, error: 'codigo and dni are required' });
+    }
+
+    // STEP 1: verify carnet payment (check only, do not block login)
+    const carnet = await checkCarnetPayment({ codigo, dni });
+
+    // STEP 1.5: verify rectification payment (check only)
+    const rectification = await checkRectificationPayment({ codigo, dni });
+
+    // Note: We do NOT block here if carnet.allowed is false.
+    // We proceed to verify credentials so the user can enter the dashboard.
+
+
+    // STEP 2: UMA student login
+    const r = await studentLogin({ codigo, dni });
+
+    const root = r.data || {};
+    const data = root.data || root;
+    const access = data.access_token || root.access_token || null;
+    const refresh = data.refresh_token || root.refresh_token || null;
+
+    if (!access) {
+      return res.status(502).json({
+        ok: false,
+        error: 'UMA login did not return tokens',
+        raw: root,
+      });
+    }
+
+    setStudentAccessToken(req.session, access);
+    setStudentRefreshToken(req.session, refresh);
+
+    // STEP 3: fetch student profile from UMA_BASE_URL (grupoa/student)
+    let studentProfile = await fetchStudentFromUma({ codigo });
+
+    // Ensure we have an object and inject the login code
+    if (!studentProfile) studentProfile = {};
+    studentProfile.codigo = studentProfile.codigo || codigo; // Ensure code is returned
+
+    res.json({
+      ok: true,
+      message: 'login ok',
+      carnet: {
+        ok: carnet.allowed, // Reflect true/false based on payment
+        allowed: carnet.allowed,
+        reason: carnet.reason || (carnet.allowed ? 'ok' : 'Pago no encontrado'),
+        row: carnet.row || null,
+      },
+      rectification: {
+        ok: rectification.allowed,
+        allowed: rectification.allowed,
+        reason: rectification.reason
+      },
+      student: studentProfile,
+    });
+  } catch (e) {
+    const status = e.response?.status || e.status || 500;
+    res
+      .status(status)
+      .json({ ok: false, error: e.response?.data || e.message });
+  }
+});
+
+// ---------- ADMIN LOGIN ----------
+app.post('/api/admin/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) {
+      return res
+        .status(400)
+        .json({ ok: false, error: 'email and password are required' });
+    }
+
+    const r = await adminLogin({ email, password });
+
+    const root = r.data || {};
+    const data = root.data || root;
+    const access = data.access_token || root.access_token || null;
+
+    if (!access) {
+      return res.status(502).json({
+        ok: false,
+        error: 'UMA admin login did not return token',
+        raw: root,
+      });
+    }
+
+    req.session.adminAccessToken = access;
+    res.json({ ok: true, message: 'admin login ok' });
+  } catch (e) {
+    const status = e.response?.status || e.status || 500;
+    res
+      .status(status)
+      .json({ ok: false, error: e.response?.data || e.message });
+  }
+});
+
+// ---------- STUDENT PROFILE (for frontend) ----------
+app.post('/api/student/profile', async (req, res) => {
+  try {
+    const { code } = req.body;
+    if (!code) {
+      return res.status(400).json({ ok: false, error: 'code is required' });
+    }
+
+    const studentProfile = await fetchStudentFromUma({ codigo: code });
+
+    if (!studentProfile) {
+      return res.status(502).json({
+        ok: false,
+        error: 'No se pudo obtener el perfil del estudiante desde UMA.',
+      });
+    }
+
+    res.json({ ok: true, data: studentProfile });
+  } catch (e) {
+    const status = e.response?.status || e.status || 500;
+    res
+      .status(status)
+      .json({ ok: false, error: e.response?.data || e.message });
+  }
+});
+
+// ---------- STUDENT COURSE SCHEDULES ----------
+app.post('/api/student/course-schedules', async (req, res) => {
+  try {
+    const { code, period } = req.body;
+    if (!code || !period) {
+      return res
+        .status(400)
+        .json({ ok: false, error: 'code and period are required' });
+    }
+
+    const r = await callUmaWithAdminRetry(adminGetCourseSchedules, {
+      code,
+      period,
+    });
+    res.json({ ok: true, data: r.data });
+  } catch (e) {
+    const status = e.response?.status || e.status || 500;
+    res
+      .status(status)
+      .json({ ok: false, error: e.response?.data || e.message });
+  }
+});
+
+// ---------- ADMIN DATA ----------
+app.post('/api/admin/student', async (req, res) => {
+  try {
+    const { code } = req.body;
+    if (!code) {
+      return res.status(400).json({ ok: false, error: 'code is required' });
+    }
+
+    const r = await callUmaWithAdminRetry(adminGetStudent, { code });
+    res.json({ ok: true, data: r.data });
+  } catch (e) {
+    const status = e.response?.status || e.status || 500;
+    res
+      .status(status)
+      .json({ ok: false, error: e.response?.data || e.message });
+  }
+});
+
+app.post('/api/admin/course-schedules', async (req, res) => {
+  try {
+    const { code, period } = req.body;
+    if (!code || !period) {
+      return res
+        .status(400)
+        .json({ ok: false, error: 'code and period are required' });
+    }
+
+    const r = await callUmaWithAdminRetry(adminGetCourseSchedules, {
+      code,
+      period,
+    });
+    res.json({ ok: true, data: r.data });
+  } catch (e) {
+    const status = e.response?.status || e.status || 500;
+    res
+      .status(status)
+      .json({ ok: false, error: e.response?.data || e.message });
+  }
+});
+
+app.post('/api/admin/teachers', async (req, res) => {
+  try {
+    const { period } = req.body;
+    if (!period) {
+      return res.status(400).json({ ok: false, error: 'period is required' });
+    }
+    const r = await callUmaWithAdminRetry(adminGetTeachers, { period });
+    res.json({ ok: true, data: r.data });
+  } catch (e) {
+    const status = e.response?.status || e.status || 500;
+    res
+      .status(status)
+      .json({ ok: false, error: e.response?.data || e.message });
+  }
+});
+
+app.post('/api/admin/teacher-schedule', async (req, res) => {
+  try {
+    const { dni, period } = req.body;
+    if (!dni || !period) {
+      return res
+        .status(400)
+        .json({ ok: false, error: 'dni and period are required' });
+    }
+    const r = await callUmaWithAdminRetry(adminGetTeacherSchedule, {
+      dni,
+      period,
+    });
+    res.json({ ok: true, data: r.data });
+  } catch (e) {
+    const status = e.response?.status || e.status || 500;
+    res
+      .status(status)
+      .json({ ok: false, error: e.response?.data || e.message });
+  }
+});
+
+// ---------- PHOTO VALIDATOR PROXY + LOG ----------
+app.post('/validate', upload.single('image'), async (req, res) => {
+  try {
+    const file = req.file;
+    const bodyFields = req.body || {};
+    const dni = bodyFields.dni || 'unknown_user';
+    const code = bodyFields.code || '';
+
+    if (!file) {
+      return res.status(400).json({ ok: false, issues: ['No file provided'] });
+    }
+
+    // ----- enrich with UMA data -----
+    let name = bodyFields.name || '';
+    let email = bodyFields.email || '';
+    let esp = bodyFields.esp || '';
+    let facultad = bodyFields.facultad || bodyFields.faculty || '';
+
+    if (code && (!name || !email || !esp || !facultad)) {
+      try {
+        const r = await callUmaWithAdminRetry(adminGetStudent, { code });
+        const root = r.data || {};
+        const s = root.data || root || {};
+
+        const firstName = s.name || s.nombres || s.nombre || '';
+        const lastName =
+          s.lastname ||
+          s.apellidos ||
+          s.apellido ||
+          [s.apellidoPaterno, s.apellidoMaterno].filter(Boolean).join(' ') ||
+          '';
+        const fullName = [firstName, lastName].filter(Boolean).join(' ');
+
+        if (!name && fullName) name = fullName;
+
+        if (!email) {
+          email =
+            s.email_institucional ||
+            s.emailInstitucional ||
+            s.email ||
+            '';
+        }
+
+        if (!esp) {
+          esp =
+            s.carrera ||
+            s.especialidad ||
+            s.specialtyName ||
+            s.schoolName ||
+            '';
+        }
+
+        if (!facultad) {
+          facultad =
+            s.facultad ||
+            s.faculty ||
+            s.facultyName ||
+            s.facultadNombre ||
+            '';
+        }
+      } catch (err) {
+        console.warn(
+          '[validate] adminGetStudent failed for code',
+          code,
+          err.message || err
+        );
+      }
+    }
+
+    // ----- call Python validator -----
+    const formData = new FormData();
+    formData.append('image', file.buffer, {
+      filename: file.originalname,
+      contentType: file.mimetype || 'application/octet-stream',
+    });
+    formData.append('dni', dni);
+
+    const url = `${VALIDATOR_URL}/validate`;
+    console.log('[validate] calling validator at:', url);
+
+    const response = await axios.post(url, formData, {
+      headers: formData.getHeaders(),
+      maxContentLength: Infinity,
+      maxBodyLength: Infinity,
+      validateStatus: () => true,
+    });
+
+    const data = response.data || {};
+
+    // ----- log submission -----
+    try {
+      const ok = !!data.ok;
+      const category = data.category || (ok ? 'approved' : 'rejected');
+      const filename = data.filename || '';
+      const relPath = (data.relative_path || '').toString();
+
+      let photoUrl = '';
+      if (filename) {
+        photoUrl = `/photos/${category}/${filename}`;
+      } else if (relPath) {
+        const normalized = relPath.replace(/\\/g, '/');
+        if (normalized.startsWith('photos/')) {
+          const tail = normalized.slice('photos/'.length);
+          photoUrl = `/photos/${tail}`;
+        }
+      }
+
+      const now = new Date().toISOString();
+
+      const submission = {
+        dni,
+        code,
+        name,
+        email,
+        facultad,
+        carrera: esp,
+        esp,
+        category,
+        ok,
+        photoUrl,
+        filename,
+        relative_path: relPath,
+        issues: Array.isArray(data.issues) ? data.issues : [],
+        data_url: data.data_url || null,
+        supabase_url: data.supabase_url || null,
+        suneduStatus: 'Pendiente',
+        updatedAt: now,
+      };
+
+      if (DB_ENABLED) {
+        await upsertSubmissionInDb(submission);
+      } else {
+        const list = await loadSubmissionsFromFile();
+        const idxExisting = list.findIndex((s) => s.dni === dni);
+        if (idxExisting >= 0) {
+          list[idxExisting] = { ...list[idxExisting], ...submission };
+        } else {
+          submission.createdAt = now;
+          list.push(submission);
+        }
+        await saveSubmissionsToFile(list);
+      }
+    } catch (err) {
+      console.error('[submissions] log error:', err);
+    }
+
+    res.status(response.status || 200).json(data);
+  } catch (err) {
+    console.error('Validator proxy error:', err);
+    res.status(500).json({
+      ok: false,
+      issues: ['Validation service error: ' + err.message],
+    });
+  }
+});
+
+// ---------- PHOTO AUTO-FIX PROXY (no log / no save) ----------
+app.post('/fix-photo', upload.single('image'), async (req, res) => {
+  try {
+    const file = req.file;
+
+    if (!file) {
+      return res.status(400).json({ ok: false, issues: ['No file provided'] });
+    }
+
+    const formData = new FormData();
+    formData.append('image', file.buffer, {
+      filename: file.originalname || 'photo.jpg',
+      contentType: file.mimetype || 'application/octet-stream',
+    });
+
+    const url = `${VALIDATOR_URL}/fix-photo`;
+    console.log('[fix-photo] calling validator at:', url);
+
+    const response = await axios.post(url, formData, {
+      headers: formData.getHeaders(),
+      maxContentLength: Infinity,
+      maxBodyLength: Infinity,
+      validateStatus: () => true,
+    });
+
+    const data = response.data || {};
+    res.status(response.status || 200).json(data);
+  } catch (err) {
+    console.error('Fix-photo proxy error:', err);
+    res.status(500).json({
+      ok: false,
+      issues: [
+        'Error interno al intentar corregir la foto automáticamente.',
+      ],
+    });
+  }
+});
+
+// ---------- ADMIN: list submissions ----------
+app.get('/api/admin/submissions', async (_req, res) => {
+  try {
+    const list = await loadSubmissions();
+    const approved = list.filter((s) => s.category === 'approved');
+    const rejected = list.filter((s) => s.category !== 'approved');
+    res.json({ ok: true, data: { approved, rejected } });
+  } catch (err) {
+    console.error('[submissions] admin list error:', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// ---------- ADMIN: generate ZIP ----------
+app.post('/api/admin/generate-zip', async (req, res) => {
+  try {
+    const { dniList } = req.body || {};
+    const list = await loadSubmissions();
+    let selected = list.filter((s) => s.category === 'approved');
+
+    if (Array.isArray(dniList) && dniList.length) {
+      const dniSet = new Set(dniList.map(String));
+      selected = selected.filter((s) => s.dni && dniSet.has(String(s.dni)));
+    }
+
+    console.log(
+      '[zip] approved in storage:',
+      list.filter((s) => s.category === 'approved').length
+    );
+    console.log('[zip] requested DNIs:', selected.map((s) => s.dni));
+
+    if (!selected.length) {
+      return res
+        .status(400)
+        .json({ ok: false, error: 'No hay estudiantes seleccionados.' });
+    }
+
+    const { zipPath, total, fileName } = await createAdminZip(selected, {
+      outDir: ZIP_OUTPUT_DIR,
+    });
+
+    const publicUrl = `/downloads/${fileName}`;
+
+    return res.json({
+      ok: true,
+      url: publicUrl,
+      total,
+      zipPath,
+      file: fileName,
+    });
+  } catch (err) {
+    console.error('[zip] unexpected error:', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// ---------- ADMIN: delete submissions ----------
+app.post('/api/admin/delete-submissions', async (req, res) => {
+  try {
+    const { dniList } = req.body || {};
+    if (!Array.isArray(dniList) || !dniList.length) {
+      return res.status(400).json({ ok: false, error: 'dniList vacío.' });
+    }
+
+    const listBefore = await loadSubmissions();
+    const toDelete = listBefore.filter(
+      (s) => s.dni && dniList.includes(s.dni)
+    );
+
+    let deleted = 0;
+    if (DB_ENABLED) {
+      deleted = await deleteSubmissionsInDb(dniList);
+    } else {
+      const remaining = listBefore.filter(
+        (s) => !(s.dni && dniList.includes(s.dni))
+      );
+      await saveSubmissionsToFile(remaining);
+      deleted = toDelete.length;
+    }
+
+    // remove local photo files for those DNIs (best-effort)
+    for (const s of toDelete) {
+      const abs = findApprovedPhotoByDni(s.dni);
+      if (abs) await deletePhotoFile(abs);
+    }
+
+    res.json({ ok: true, deleted });
+  } catch (err) {
+    console.error('[delete-submissions] error:', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// ---------- ADMIN: mark SUNEDU sent ----------
+app.post('/api/admin/mark-sunedu-sent', async (req, res) => {
+  try {
+    const { dniList } = req.body || {};
+    if (!Array.isArray(dniList) || !dniList.length) {
+      return res.status(400).json({ ok: false, error: 'dniList vacío.' });
+    }
+
+    let updated = 0;
+
+    if (DB_ENABLED) {
+      updated = await markSuneduSentInDb(dniList);
+    } else {
+      const list = await loadSubmissionsFromFile();
+      const now = new Date().toISOString();
+      const updatedList = list.map((s) => {
+        if (s.dni && dniList.includes(s.dni)) {
+          updated += 1;
+          return { ...s, suneduStatus: 'Enviado', updatedAt: now };
+        }
+        return s;
+      });
+      await saveSubmissionsToFile(updatedList);
+    }
+
+    res.json({ ok: true, updated });
+  } catch (err) {
+    console.error('[mark-sunedu-sent] error:', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// ---------- Carnet Status & Guard Routes ----------
+
+// 1. Status Check (for Dashboard)
+app.get('/api/student/status/:dni', async (req, res) => {
+  res.header("Access-Control-Allow-Origin", "*");
+  try {
+    const { dni } = req.params;
+    const sub = await checkStudentAlreadySubmitted(dni);
+    if (sub) {
+      return res.json({ submitted: true, data: sub });
+    }
+    return res.json({ submitted: false });
+  } catch (err) {
+    console.error('Status check error:', err);
+    res.status(500).json({ submitted: false, error: err.message });
+  }
+});
+
+// 2. Carnet Workflow Entry (Guard)
+app.get('/services/carne', async (req, res) => {
+  const { dni, code } = req.query;
+  if (!dni || !code) {
+    return res.send('Faltan parámetros (dni, code).');
+  }
+  const sub = await checkStudentAlreadySubmitted(dni);
+
+  if (sub) {
+    // If already submitted, show simple "Ya enviado" page or redirect.
+    // The user requested a dashboard message/modal, but if they hit this URL directly:
+    return res.send(`
+      <html>
+        <head>
+          <meta charset="UTF-8">
+          <title>Solicitud Enviada</title>
+          <style>body{font-family:sans-serif;padding:2rem;text-align:center;color:#333;}</style>
+        </head>
+        <body>
+          <h1>Tu solicitud fue enviada correctamente.</h1>
+          <p>Ya no puedes ingresar nuevamente.</p>
+          <p><a href="http://localhost:3002">Volver al Dashboard</a></p>
+        </body>
+      </html>
+    `);
+  }
+
+  // If not submitted, redirect to the Carné app (auto-login or student.html)
+  // We assume auto-login.html exists and handles the logic
+  res.redirect(`/auto-login.html?code=${encodeURIComponent(code)}&dni=${encodeURIComponent(dni)}`);
+});
+
+// 3. Details View
+app.get('/services/carne/detalles', async (req, res) => {
+  const { dni } = req.query;
+  if (!dni) return res.send('Falta DNI.');
+
+  const sub = await checkStudentAlreadySubmitted(dni);
+  if (!sub) {
+    return res.send('No se encontró solicitud para este DNI.');
+  }
+
+  // Render details
+  const photoHtml = sub.photoUrl
+    ? `<div style="margin:20px 0;"><img src="${sub.photoUrl}" style="max-width:200px;border:1px solid #ccc;border-radius:4px;"></div>`
+    : '';
+
+  const issuesHtml = (sub.issues && sub.issues.length > 0)
+    ? `<div style="color:#d9534f;margin-top:10px;"><strong>Observaciones:</strong><ul>${sub.issues.map(i => `<li>${i}</li>`).join('')}</ul></div>`
+    : '';
+
+  const categoryLabel = sub.category === 'approved' ? 'Aprobado' : (sub.category || 'Pendiente');
+  const categoryColor = sub.category === 'approved' ? '#28a745' : '#ffc107';
+
+  res.send(`
+    <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>Detalles Carné - ${sub.code}</title>
+        <style>
+          body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; padding: 2rem; }
+          .container { max-width: 600px; margin: 0 auto; background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+          h1 { margin-top: 0; color: #d6006e; }
+          .row { margin-bottom: 10px; }
+          .label { font-weight: bold; color: #555; display: inline-block; width: 100px; }
+          .badge { padding: 4px 8px; border-radius: 4px; color: white; display: inline-block; font-size: 0.9em; }
+          .btn { display: inline-block; margin-top: 20px; text-decoration: none; color: #d6006e; font-weight: bold; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <h1>Detalles de Solicitud</h1>
+          <div class="row"><span class="label">Estudiante:</span> ${sub.name || 'Unknown'}</div>
+          <div class="row"><span class="label">Código:</span> ${sub.code}</div>
+          <div class="row"><span class="label">DNI:</span> ${sub.dni}</div>
+          <div class="row">
+            <span class="label">Estado:</span> 
+            <span class="badge" style="background-color: ${categoryColor}; text-shadow: 0 1px 1px rgba(0,0,0,0.2);">
+              ${categoryLabel}
+            </span>
+          </div>
+          <div class="row"><span class="label">Fecha:</span> ${sub.updatedAt ? new Date(sub.updatedAt).toLocaleString() : '--'}</div>
+          
+          ${photoHtml}
+          ${issuesHtml}
+
+          <a href="http://localhost:3002" class="btn">← Volver al Dashboard</a>
+        </div>
+      </body>
+    </html>
+  `);
+});
+
+app.get('/health', (_req, res) => {
+  res.json({
+    ok: true,
+    validator: VALIDATOR_URL,
+    photosRoot: PHOTOS_ROOT,
+    dbEnabled: DB_ENABLED,
+  });
+});
+
+app.listen(PORT, () => {
+  console.log(`UMA proxy running on port ${PORT}`);
+  console.log(`Validator URL configured as: ${VALIDATOR_URL}`);
+  console.log(`PHOTOS_ROOT: ${PHOTOS_ROOT}`);
+  console.log(`ZIP_OUTPUT_DIR: ${ZIP_OUTPUT_DIR}`);
+  console.log(`DB_ENABLED: ${DB_ENABLED}`);
+});
