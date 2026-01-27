@@ -1,0 +1,30 @@
+services:
+  - type: web
+    name: uma-portal-monolith
+    runtime: docker
+    plan: free # Explicitly using the Free tier
+    region: oregon # Oregon is usually the fastest for Free tier
+    envVars:
+      - key: PORT
+        value: 3002
+      - key: NODE_ENV
+        value: production
+      - key: NODE_OPTIONS
+        value: "--max-old-space-size=120" # Limit each Node process to 120MB to fit in 512MB
+      # Add placeholders for your actual secrets (you will fill these in Render UI)
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASS
+        sync: false
+      - key: LOGIN_BASE_URL
+        sync: false
+      - key: DATA_BASE_URL
+        sync: false
+      - key: CURRENT_PERIOD_ID
+        value: "20261"
+      - key: SESSION_SECRET
+        generateValue: true
