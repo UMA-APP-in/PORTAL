@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node server/index.js",
     "dev": "nodemon server/index.js",
-    "validator": "node -e \"const os=require('os'); const cmd = os.platform()==='win32' ? 'photo\\\\.venv\\\\Scripts\\\\python.exe' : '.venv/bin/python'; require('child_process').spawn(cmd, ['-m', 'uvicorn', 'photo.validator_api:app', '--host', '127.0.0.1', '--port', '8000'], {stdio: 'inherit', shell: true})\""
+    "validator": "node -e \"const os=require('os'); const cmd = os.platform()==='win32' ? 'photo\\\\.venv\\\\Scripts\\\\python.exe' : 'photo/.venv/bin/python'; require('child_process').spawn(cmd, ['-m', 'uvicorn', 'photo.validator_api:app', '--host', '127.0.0.1', '--port', '8000'], {stdio: 'inherit', shell: true})\""
   },
   "dependencies": {
     "archiver": "^7.0.1",

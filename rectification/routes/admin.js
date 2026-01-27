@@ -18,8 +18,8 @@ const asyncHandler = (fn) => (req, res, next) =>
 
 // ✅ Supabase (service role key => server-side only)
 const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY,
+  process.env.RECT_SUPABASE_URL || process.env.SUPABASE_URL,
+  process.env.RECT_SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY,
   { auth: { persistSession: false } }
 );
 
@@ -145,11 +145,11 @@ router.get("/", requireAdmin, asyncHandler(async (req, res) => {
 
   const filtered = q
     ? rects.filter(
-        (r) =>
-          String(r.student?.code || "").toLowerCase().includes(q) ||
-          String(r.student?.dni || "").toLowerCase().includes(q) ||
-          String(r.student?.name || "").toLowerCase().includes(q)
-      )
+      (r) =>
+        String(r.student?.code || "").toLowerCase().includes(q) ||
+        String(r.student?.dni || "").toLowerCase().includes(q) ||
+        String(r.student?.name || "").toLowerCase().includes(q)
+    )
     : rects;
 
   res.render("admin_dashboard", {
