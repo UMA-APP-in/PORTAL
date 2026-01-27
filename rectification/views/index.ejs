@@ -1,0 +1,3626 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Portal de Rectificación de cursos</title>
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="/css/style.css" />
+
+  <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
+  <script type="module" src="https://unpkg.com/@lottiefiles/dotlottie-wc@0.6.2/dist/dotlottie-wc.js"></script>
+
+  <style>
+    :root {
+      --main-pink: #f02454;
+      --main-pink-dark: #c81e47;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+    }
+
+    body {
+      background: linear-gradient(135deg, #f8fafc, #eef2ff, #e0e7ff);
+      min-height: 100vh;
+      padding: 24px;
+      font-family: system-ui, Arial, sans-serif;
+    }
+
+    .wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, .08);
+      overflow: hidden;
+    }
+
+    .muted {
+      color: var(--muted);
+      font-size: .95rem;
+    }
+
+    .header {
+      background: linear-gradient(90deg, var(--main-pink), var(--main-pink-dark));
+      color: #fff;
+      padding: 24px 28px;
+      border-radius: 18px 18px 0 0;
+    }
+
+    .header-row {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+    }
+
+    .avatar {
+      background: rgba(255, 255, 255, .18);
+      border-radius: 50%;
+      width: 60px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 1.75rem;
+    }
+
+    .header-main {
+      font-size: 1.8rem;
+      font-weight: 800;
+      letter-spacing: .5px;
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: nowrap;
+      /* keeps everything in ONE line */
+    }
+
+    .panel-actions {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-shrink: 0;
+      /* prevents buttons from shrinking weirdly */
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    :root {
+      --btn-dark-bg: #0b0b0f;
+      /* like cerrar sesión */
+      --btn-dark-bd: rgba(255, 255, 255, .14);
+      --btn-dark-shadow: 0 12px 28px rgba(16, 24, 40, .18);
+
+      --btn-light-bg: #111827;
+      /* slightly lighter */
+      --btn-light-bd: rgba(148, 163, 184, .28);
+      --btn-light-shadow: 0 10px 24px rgba(16, 24, 40, .14);
+    }
+
+    /* ===== Make logout (Cerrar sesión) the reference style ===== */
+    .logout-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 18px;
+      border-radius: 18px;
+      background: var(--btn-dark-bg);
+      color: #fff;
+      border: 1px solid var(--btn-dark-bd);
+      box-shadow: var(--btn-dark-shadow);
+      font-weight: 900;
+      cursor: pointer;
+      transition: filter .15s ease, transform .15s ease;
+    }
+
+    .logout-btn:hover {
+      filter: brightness(1.05);
+      transform: translateY(-1px);
+    }
+
+    /* ===== Right side actions (Guide + IA) in ONE line ===== */
+    .panel-actions {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    /* ===== Guide button (NO animation) — same as logout ===== */
+    .btn-guide {
+      height: 58px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 0 18px;
+      border-radius: 18px;
+
+      background: var(--btn-dark-bg);
+      color: #fff;
+      border: 1px solid var(--btn-dark-bd);
+      box-shadow: var(--btn-dark-shadow);
+      font-weight: 900;
+      cursor: pointer;
+
+      transition: filter .15s ease, transform .15s ease;
+    }
+
+    .btn-guide:hover {
+      filter: brightness(1.05);
+      transform: translateY(-1px);
+    }
+
+    /* Ensure NO pseudo glow/animation on guide */
+    .btn-guide::before,
+    .btn-guide::after {
+      content: none !important;
+      animation: none !important;
+    }
+
+    .btn-guide__ico {
+      width: 22px;
+      height: 22px;
+      object-fit: contain;
+      /* make black icon look white if needed */
+      filter: invert(1);
+    }
+
+    /* ===== Generar con IA — same base as logout, but keep your existing animation ===== */
+    #aiSuggestBtn.btn-ia {
+      height: 58px;
+      border-radius: 18px;
+      background: var(--btn-dark-bg);
+      border: 1px solid var(--btn-dark-bd);
+      box-shadow: var(--btn-dark-shadow);
+      overflow: hidden;
+    }
+
+    #aiSuggestBtn .btn-ia__inner {
+      background: transparent !important;
+      padding: 14px 22px !important;
+      height: 58px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* ===== Action buttons row — same style but a bit lighter ===== */
+    .actions-center #resetScheduleBtn,
+    .actions-center #seeTimetableBtn,
+    .actions-center #confirmBtn {
+      background: var(--btn-light-bg) !important;
+      color: #fff !important;
+      border: 1px solid var(--btn-light-bd) !important;
+      box-shadow: var(--btn-light-shadow) !important;
+
+      border-radius: 18px !important;
+      padding: 14px 18px !important;
+      font-weight: 900 !important;
+
+      transition: filter .15s ease, transform .15s ease;
+    }
+
+    .actions-center #resetScheduleBtn:hover,
+    .actions-center #seeTimetableBtn:hover,
+    .actions-center #confirmBtn:hover {
+      filter: brightness(1.05);
+      transform: translateY(-1px);
+    }
+
+    .actions-center #resetScheduleBtn:disabled,
+    .actions-center #seeTimetableBtn:disabled,
+    .actions-center #confirmBtn:disabled {
+      opacity: .55;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* Optional: make timetable close also match (light variant) */
+    .tt-close {
+      background: var(--btn-light-bg) !important;
+      color: #fff !important;
+      border: 1px solid var(--btn-light-bd) !important;
+      box-shadow: var(--btn-light-shadow) !important;
+      border-radius: 18px !important;
+      padding: 10px 14px !important;
+      font-weight: 900 !important;
+    }
+
+
+    .profile-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+      padding: 18px 20px 16px;
+      background: #ffffff;
+    }
+
+    .profile-card {
+      background: #f9fafb;
+      border-radius: 12px;
+      padding: 10px 14px;
+      min-height: 58px;
+      border: 1px solid #e5e7eb;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .profile-label {
+      color: #6b7280;
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 4px;
+      letter-spacing: .2px;
+    }
+
+    .profile-value {
+      color: #111827;
+      font-size: 14px;
+      font-weight: 700;
+      word-break: break-word;
+    }
+
+    .tt-tab[disabled],
+    .tt-tab.tt-tab-disabled {
+      opacity: .45;
+      cursor: default;
+    }
+
+    @media (max-width: 640px) {
+      .header {
+        padding: 18px 16px;
+      }
+
+      .header-main {
+        font-size: 1.4rem;
+      }
+
+      .profile-cards {
+        padding: 12px 12px 10px;
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* ===== Guide Modal ===== */
+    .guide-modal-overlay {
+      position: fixed;
+      z-index: 11000;
+      inset: 0;
+      background: rgba(60, 60, 80, 0.18);
+      backdrop-filter: blur(6px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+
+
+
+    .guide-card {
+      background: rgba(255, 255, 255, 0.96);
+      border-radius: 20px;
+      padding: 22px 20px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      width: min(760px, 92vw);
+      max-height: 82vh;
+      overflow: auto;
+    }
+
+    .guide-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .guide-title {
+      font-weight: 900;
+      font-size: 1.35rem;
+      color: #0f172a;
+    }
+
+    .guide-subtitle {
+      color: #6b7280;
+      font-weight: 700;
+      font-size: .95rem;
+      margin-top: 4px;
+    }
+
+    .guide-x {
+      width: 38px;
+      height: 38px;
+      border-radius: 12px;
+      border: 1px solid #e5e7eb;
+      background: #fff;
+      font-size: 22px;
+      font-weight: 900;
+      cursor: pointer;
+      line-height: 1;
+    }
+
+    .guide-steps {
+      margin: 12px 0 14px;
+      padding-left: 18px;
+      color: #111827;
+      font-weight: 600;
+    }
+
+    .guide-steps li {
+      margin: 10px 0;
+      line-height: 1.35;
+    }
+
+    .guide-tips {
+      background: #f8fafc;
+      border: 1px solid #eef0f6;
+      border-radius: 14px;
+      padding: 12px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .guide-tip {
+      color: #334155;
+      font-weight: 700;
+      font-size: .95rem;
+    }
+
+    .guide-check {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #374151;
+      font-weight: 800;
+      margin: 10px 0 0;
+    }
+
+    .guide-actions {
+      margin-top: 14px;
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    .uma-modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, .45);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 13000;
+      /* ✅ ABOVE loadingOverlay (9999) + AI modal (10000) + guide modal (11000) */
+      padding: 16px;
+    }
+
+    .uma-modal-backdrop.show {
+      display: flex;
+    }
+
+
+    .uma-modal {
+      width: min(560px, 95vw);
+      background: #fff;
+      border-radius: 18px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, .25);
+      padding: 18px 18px 14px;
+    }
+
+    .uma-modal-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .uma-modal-head h3 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 800;
+    }
+
+    .uma-x {
+      border: none;
+      background: #f1f5f9;
+      width: 36px;
+      height: 36px;
+      border-radius: 12px;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: 800;
+    }
+
+    .uma-modal-sub {
+      margin: 10px 0 12px;
+      color: #475569;
+      font-size: 14px;
+    }
+
+    .ai-blocked-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .ai-blocked-list li {
+      border: 1px solid #e5e7eb;
+      border-radius: 14px;
+      padding: 10px 12px;
+      background: #f8fafc;
+    }
+
+    .ai-blocked-title {
+      font-weight: 900;
+      color: #0f172a;
+    }
+
+    .ai-blocked-reason {
+      margin-top: 4px;
+      font-size: 13px;
+      color: #334155;
+    }
+
+    .ai-pill {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 800;
+      margin-right: 8px;
+      background: #e2e8f0;
+      color: #0f172a;
+    }
+
+    .ai-pill.red {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .ai-pill.amber {
+      background: #ffedd5;
+      color: #9a3412;
+    }
+
+
+    .grid {
+      display: grid;
+      gap: 16px;
+    }
+
+    .grid-3 {
+      grid-template-columns: repeat(3, 1fr);
+    }
+
+    .panel {
+      background: #fff;
+      border-radius: 14px;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, .06);
+      padding: 20px;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 8px 12px;
+      border-radius: 10px;
+      font-weight: 800;
+      letter-spacing: .8px;
+    }
+
+    .badge.purple {
+      background: linear-gradient(90deg, #f02454, #c81e47);
+      color: #fff;
+    }
+
+    .course-container {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    @media (max-width: 900px) {
+      .course {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto auto auto;
+        align-items: flex-start;
+      }
+
+      .course-code {
+        justify-content: flex-start;
+        margin-bottom: 6px;
+      }
+
+      .repl {
+        grid-column: 1;
+        justify-self: stretch;
+        width: 100%;
+        margin-top: 8px;
+      }
+
+      .repl[open] {
+        grid-column: 1 / -1;
+        justify-self: stretch;
+        margin-top: 8px;
+      }
+
+      .repl[open]>summary {
+        text-align: right;
+        margin-bottom: 8px;
+      }
+    }
+
+    .course:hover {
+      box-shadow: 0 2px 8px rgba(0, 0, 0, .05);
+      transform: translateY(-1px);
+    }
+
+    .course-hidden-segment {
+      display: none !important;
+    }
+
+    .course-code {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      /* space between code badge and “Cambiado” pill */
+      flex-wrap: wrap;
+    }
+
+    /* ===== Visual highlight for courses with changes ===== */
+    .course--changed {
+      background: #fff7fb;
+      /* light pink background */
+      border-color: #fecaca;
+      /* soft red border */
+      box-shadow: 0 0 0 1px rgba(248, 113, 113, .08),
+        0 8px 20px rgba(248, 113, 113, .12);
+    }
+
+    .course-change-pill {
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: .78rem;
+      font-weight: 700;
+      background: #fef2f2;
+      color: #b91c1c;
+      border: 1px solid #fecaca;
+      text-transform: uppercase;
+      letter-spacing: .4px;
+    }
+
+    .course-details {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .course-title {
+      font-weight: 700;
+      font-size: 1.02rem;
+      color: #111827;
+      margin: 0;
+    }
+
+    .course-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 14px;
+      font-size: .9rem;
+      color: #374151;
+    }
+
+    .meta-item {
+      display: flex;
+      gap: 6px;
+    }
+
+    .meta-item:not(:last-child)::after {
+      content: "•";
+      margin-left: 6px;
+      color: #d1d5db;
+    }
+
+    .repl {
+      grid-column: 3;
+      justify-self: end;
+    }
+
+    /* make summary look like a button */
+    .repl>summary {
+      list-style: none;
+      cursor: pointer;
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      font-weight: 700;
+      font-size: .9rem;
+      color: #111827;
+      background: #f9fafb;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .repl>summary::marker,
+    .repl>summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .repl>summary::after {
+      content: "▾";
+      font-size: .7rem;
+      opacity: .7;
+      transform: translateY(1px);
+    }
+
+    .repl[open]>summary::after {
+      content: "▴";
+    }
+
+    .repl>summary:hover {
+      background: #eef2ff;
+      border-color: #c7d2fe;
+    }
+
+    .repl[open] {
+      grid-column: 1 / -1;
+      justify-self: stretch;
+      margin-top: 8px;
+    }
+
+    .repl[open]>summary {
+      text-align: right;
+      margin-bottom: 8px;
+    }
+
+    .replacement-options {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      background: #fff;
+      margin-top: 4px;
+    }
+
+    .option {
+      display: grid;
+      grid-template-columns: minmax(0, 120px) minmax(0, 1fr) minmax(0, 220px);
+      align-items: flex-start;
+      gap: 16px;
+      padding: 14px 16px;
+      border-top: 1px solid var(--border);
+    }
+
+    .option:first-child {
+      border-top: none;
+    }
+
+    .option-code {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(90deg, #f02454, #c81e47);
+      color: #fff;
+      border-radius: 10px;
+      padding: 10px;
+      font-weight: 800;
+      letter-spacing: 1px;
+    }
+
+    .option-fields {
+      display: grid;
+      grid-template-columns: minmax(0, 140px) minmax(0, 1fr);
+      column-gap: 16px;
+      row-gap: 8px;
+      align-items: flex-start;
+    }
+
+    .field .label {
+      display: block;
+      color: #6b7280;
+      font-size: .78rem;
+      margin-bottom: 4px;
+    }
+
+    .field .value {
+      font-weight: 700;
+      font-size: .92rem;
+      color: #111827;
+    }
+
+    .option-cta {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .option-btn {
+      width: 100%;
+      height: 52px;
+      border-radius: 10px;
+      font-weight: 800;
+      color: #fff;
+      background: #2563eb;
+      border: 1px solid #2563eb;
+      cursor: pointer;
+    }
+
+    .option-btn[disabled] {
+      opacity: .45;
+      cursor: not-allowed;
+      filter: grayscale(0.1);
+    }
+
+    .conflict-note {
+      color: #b91c1c;
+      font-size: .85rem;
+      text-align: center;
+    }
+
+    .change-wrapper {
+      margin: 10px 0 2px;
+      padding: 14px 16px;
+      border: 1px dashed #e6e8ee;
+      border-radius: 12px;
+      background: #fcfcff;
+    }
+
+    .change-title {
+      font-weight: 800;
+      color: #0f172a;
+      margin-bottom: 10px;
+      letter-spacing: .3px;
+    }
+
+    .change-compare {
+      display: grid;
+      grid-template-columns: 1fr 60px 1fr;
+      gap: 14px;
+      align-items: stretch;
+    }
+
+    .change-card {
+      border: 1px solid var(--border);
+      background: #fff;
+      border-radius: 12px;
+      padding: 12px 14px;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px 16px;
+    }
+
+    .actions-center {
+      text-align: center;
+      margin-top: 18px;
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn-primary {
+      background: #2563eb;
+      color: #fff;
+      border: 1px solid #2563eb;
+      padding: 10px 16px;
+      border-radius: 10px;
+      font-weight: 800;
+      box-shadow: 0 6px 14px rgba(37, 99, 235, .16);
+      cursor: pointer;
+    }
+
+    .btn-primary:hover {
+      filter: brightness(0.96);
+    }
+
+    .btn-primary[disabled] {
+      opacity: .5;
+      cursor: not-allowed;
+    }
+
+    .btn-secondary {
+      background: #f3f4f6;
+      color: #111827;
+      border: 1px solid #d1d5db;
+      padding: 10px 16px;
+      border-radius: 10px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .btn-secondary:hover {
+      background: #e5e7eb;
+    }
+
+
+    .btn-primary.btn-glow {
+      padding: 8px 14px;
+      font-size: 1rem;
+      border-radius: 4px;
+      box-shadow: 0 0 16px 2px #f02454, 0 0 32px 4px #ffd6e1;
+      animation: glowPulse 2s infinite alternate;
+      border: 2px solid #f02454;
+      background: linear-gradient(90deg, #f02454, #c81e47);
+    }
+
+    @keyframes glowPulse {
+      0% {
+        box-shadow: 0 0 16px 2px #f02454, 0 0 32px 4px #ffd6e1;
+      }
+
+      100% {
+        box-shadow: 0 0 32px 6px #f02454, 0 0 48px 8px #ffd6e1;
+      }
+    }
+
+    .error {
+      color: #b00;
+      background: #630606;
+      border: 1px solid #fbb;
+      padding: 10px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+    }
+
+    .success {
+      color: #065f46;
+      background: #ecfdf5;
+      border: 1px solid #bbf7d0;
+      padding: 10px;
+      border-radius: 12px;
+      margin-bottom: 16px;
+      font-weight: 800;
+    }
+
+    /* ✅ Login page: center the error above the login card */
+    body.is-login .error {
+      position: static !important;
+      left: auto !important;
+      top: auto !important;
+      transform: none !important;
+
+      max-width: 420px;
+      width: min(420px, calc(100% - 32px));
+      margin: 18px auto 12px;
+      text-align: center;
+    }
+
+    .title-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 18px;
+    }
+
+    .uma-header-logo {
+      width: 84px;
+      height: auto;
+      display: block;
+      object-fit: contain;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .timetable {
+      margin-top: 18px;
+    }
+
+    .tt-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .tt-toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .tt-tabs {
+      display: inline-flex;
+      background: #f3f4f6;
+      padding: 3px;
+      border-radius: 999px;
+      gap: 4px;
+    }
+
+    .tt-tab {
+      border: none;
+      background: transparent;
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #4b5563;
+      cursor: pointer;
+    }
+
+    .tt-tab-active {
+      background: #111827;
+      color: #fff;
+    }
+
+    .ttGridWrapper {
+      width: 100%;
+    }
+
+    .tt-close {
+      background: var(--main-pink);
+      color: #fff;
+      border: 1px solid var(--main-pink-dark);
+      padding: 6px 8px;
+      border-radius: 11px;
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 0.9rem;
+      line-height: 1;
+      transition: none;
+    }
+
+    .tt-close:hover {
+      background: var(--main-pink);
+      color: #fff;
+    }
+
+    .tt-close:focus {
+      outline: 2px solid rgba(0, 0, 0, 0.08);
+      outline-offset: 2px;
+    }
+
+    .tt-board {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .tt-head {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      background: #1f2a37;
+      color: #fff;
+      padding: 0;
+      box-sizing: border-box;
+      border-radius: 14px 14px 0 0;
+      border-bottom: 1px solid #e5e7eb;
+      overflow: hidden;
+      width: 100%;
+      min-width: 0;
+    }
+
+    .tt-grid {
+      min-width: 720px;
+    }
+
+    .tt-head .cell {
+      padding: 18px 0 16px 0;
+      font-weight: 900;
+      font-size: 1.13rem;
+      letter-spacing: .2px;
+      text-align: center;
+      border-left: 1px solid rgba(255, 255, 255, .08);
+      border-right: none;
+      border-top: none;
+      border-bottom: none;
+      background: none;
+    }
+
+    .tt-section-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 12px;
+      background: #f8fafc;
+      border: 1px solid #eef0f6;
+      border-radius: 14px;
+      font-weight: 900;
+      color: #0f172a;
+      margin-bottom: 10px;
+    }
+
+    .tt-count {
+      color: #6b7280;
+      font-weight: 800;
+      font-size: .95rem;
+    }
+
+    /* highlight changed courses */
+    .card-mini--old {
+      border-color: #ef4444 !important;
+      /* red */
+      box-shadow: 0 4px 12px rgba(239, 68, 68, .14) !important;
+    }
+
+    .card-mini--new {
+      border-color: #22c55e !important;
+      /* green */
+      box-shadow: 0 4px 12px rgba(34, 197, 94, .14) !important;
+    }
+
+    .tt-head .cell:first-child {
+      border-left: none;
+      border-radius: 14px 0 0 0;
+    }
+
+    .tt-head .cell:last-child {
+      border-radius: 0 14px 0 0;
+    }
+
+    .tt-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      padding: 0;
+      box-sizing: border-box;
+      border-top: none;
+      width: 100%;
+      min-width: 0;
+    }
+
+    .tt-col {
+      min-height: 180px;
+      padding: 12px 0;
+      border-left: 1px solid #f3f4f6;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      background: #fff;
+      align-items: center;
+      width: 100%;
+      min-width: 0;
+    }
+
+    .tt-col:first-child {
+      border-left: none;
+    }
+
+    .card-mini {
+      width: 100%;
+      min-width: 0;
+      max-width: 100%;
+      min-height: 110px;
+      background: #fff;
+      border: 1px solid #eef0f6;
+      border-radius: 16px;
+      padding: 14px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, .06);
+      align-items: flex-start;
+      justify-content: center;
+      margin: 0;
+      box-sizing: border-box;
+    }
+
+    .card-mini .code {
+      display: inline-block;
+      background: linear-gradient(90deg, #f02454, #c81e47);
+      color: #fff;
+      font-weight: 900;
+      letter-spacing: .8px;
+      border-radius: 12px;
+      padding: 4px 10px;
+      font-size: 1rem;
+      align-self: flex-start;
+    }
+
+    .card-mini .name {
+      font-weight: 800;
+      color: #0f172a;
+      line-height: 1.15;
+      font-size: 0.93rem;
+      max-width: 180px;
+      white-space: normal;
+      overflow-wrap: break-word;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      line-clamp: 2;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      min-height: 2.2em;
+    }
+
+    .card-mini .meta {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+      font-size: 0.97rem;
+    }
+
+    .chip {
+      background: #f8fafc;
+      border: 1px solid #e5e7eb;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-weight: 800;
+      font-size: .93rem;
+    }
+
+    .chip.mod {
+      min-width: 1.75rem;
+      text-align: center;
+    }
+
+    .tt-legend {
+      padding: 12px 16px;
+      background: #f8fafc;
+      border-top: 1px solid #eef0f6;
+      display: flex;
+      gap: 18px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      background: #e11d48;
+      border-radius: 999px;
+      display: inline-block;
+      margin-right: 8px;
+    }
+
+    @media (max-width: 900px) {
+      .tt-head .cell {
+        padding: 14px 10px;
+      }
+    }
+
+    .ai-modal-overlay {
+      position: fixed;
+      z-index: 10000;
+      inset: 0;
+      background: rgba(60, 60, 80, 0.18);
+      backdrop-filter: blur(6px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.3s;
+    }
+
+    /* ✅ Prevent stuck blur in production — rely on modal backdrop instead */
+    body.guide-modal-open,
+    body.ai-modal-open {
+      overflow: hidden;
+      /* stops background scroll when modal open */
+    }
+
+    /* (optional) if you still want blur, blur ONLY the overlay backdrop, not the full page */
+    .guide-modal-overlay,
+    .ai-modal-overlay {
+      backdrop-filter: blur(8px);
+    }
+
+
+    .preferences-card {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(20px);
+      border-radius: 20px;
+      padding: 32px 28px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      max-width: 520px;
+      width: 92vw;
+    }
+
+    .card-header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .card-title {
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: #2d3748;
+      margin-bottom: 6px;
+    }
+
+    .card-subtitle {
+      color: #718096;
+      font-size: 0.95rem;
+    }
+
+    .selected-days {
+      background: #f0f4ff;
+      padding: 12px;
+      border-radius: 12px;
+      margin: 14px 0 18px;
+      border-left: 4px solid #ea6692;
+    }
+
+    .selected-days-text {
+      color: #4a5568;
+      font-size: 0.92rem;
+    }
+
+    .selected-days-count {
+      font-weight: 800;
+      color: #ce6588;
+    }
+
+    .section-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #4a5568;
+      margin: 8px 0 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .section-title::before {
+      content: "";
+    }
+
+    .days-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+
+    .day-checkbox {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .checkbox-label {
+      position: relative;
+      width: 62px;
+      height: 62px;
+      cursor: pointer;
+    }
+
+    .checkbox-input {
+      position: absolute;
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .checkbox-custom {
+      width: 100%;
+      height: 100%;
+      background: #f7fafc;
+      border: 2px solid #e2e8f0;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+      font-weight: 800;
+      color: #718096;
+    }
+
+    .checkbox-input:checked+.checkbox-custom {
+      background: linear-gradient(135deg, #e53860, #e53860);
+      border-color: #dd6990;
+      color: white;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+    }
+
+    .checkbox-input:checked+.checkbox-custom::after {
+      content: "✓";
+      font-size: 1rem;
+      margin-left: 6px;
+    }
+
+    .day-name {
+      font-size: 0.88rem;
+      color: #4a5568;
+      font-weight: 600;
+    }
+
+    .buttons-container {
+      display: flex;
+      gap: 12px;
+    }
+
+    .btn {
+      flex: 1;
+      padding: 12px 16px;
+      border: none;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 800;
+      cursor: pointer;
+      transition: .2s;
+    }
+
+    .btn-cancel {
+      background: #f7fafc;
+      color: #718096;
+      border: 2px solid #e2e8f0;
+    }
+
+    .btn-cancel:hover {
+      background: #edf2f7;
+    }
+
+    .btn-generate {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: #fff;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, .3);
+    }
+
+    .btn-generate:hover {
+      transform: translateY(-1px);
+    }
+
+    .btn-ia {
+      --glow-color-1: rgba(240, 36, 84, 0.95);
+      --glow-color-2: rgba(102, 126, 234, 0.9);
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0;
+      border-radius: 18px;
+      background: linear-gradient(90deg, var(--glow-color-1), var(--glow-color-2));
+      color: #fff;
+      font-weight: 800;
+      border: none;
+      cursor: pointer;
+    }
+
+    .btn-ia__inner {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: #0e0c0c;
+      color: #fafbff;
+      font-weight: 900;
+      padding: 14px 40px;
+    }
+
+    .btn-ia__label {
+      font-size: 1.05rem;
+    }
+
+    .btn-ia::after {
+      content: '';
+      position: absolute;
+      opacity: 0.55;
+      transition: opacity .28s ease, transform .28s ease, filter .28s ease, background .28s ease;
+      z-index: 0;
+      pointer-events: none;
+      mix-blend-mode: screen;
+    }
+
+    .btn-ia:hover,
+    .btn-ia:focus {
+      transform: translateY(-2px);
+      box-shadow: 0 14px 36px rgba(16, 24, 40, 0.12);
+      background: transparent;
+    }
+
+    .btn-ia:hover::after,
+    .btn-ia:focus::after {
+      opacity: 1;
+      transform: scale(1.04);
+      filter: blur(12px);
+      animation: iaGlow 2.2s ease-in-out infinite;
+    }
+
+    @keyframes iaGlow {
+      0% {
+        transform: scale(1.00);
+        opacity: 0.55;
+        filter: blur(20px);
+      }
+
+      50% {
+        transform: scale(1.06);
+        opacity: 1;
+        filter: blur(10px);
+      }
+
+      100% {
+        transform: scale(1.00);
+        opacity: 0.55;
+        filter: blur(20px);
+      }
+    }
+
+    @media (max-width: 900px) {
+      .wrap {
+        max-width: 100vw;
+        padding: 0 2vw;
+      }
+
+      .profile-cards {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .tt-head,
+      .tt-grid {
+        grid-template-columns: repeat(6, 1fr) !important;
+        font-size: 0.97rem;
+      }
+
+      .tt-head .cell {
+        padding: 10px 2px;
+        font-size: 0.97rem;
+      }
+
+      .tt-col {
+        min-height: 100px;
+        gap: 8px;
+      }
+
+      .card-mini {
+        font-size: 0.93rem;
+        padding: 8px 4px;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .wrap {
+        padding: 0 1vw;
+      }
+
+      .profile-cards {
+        grid-template-columns: 1fr;
+        gap: 8px;
+      }
+
+      .panel {
+        padding: 8px 2px;
+      }
+
+      .tt-head,
+      .tt-grid {
+        grid-template-columns: repeat(6, 1fr) !important;
+      }
+
+      .tt-head .cell,
+      .tt-col {
+        font-size: 0.91rem;
+      }
+
+      .tt-board {
+        width: 100vw;
+      }
+
+      .tt-col {
+        min-height: 80px;
+        padding: 4px 0;
+      }
+
+      .card-mini {
+        width: 100%;
+        min-width: 0;
+        max-width: 100%;
+        padding: 6px 2px;
+        font-size: 0.89rem;
+        border-radius: 14px;
+      }
+
+      .card-mini .name {
+        font-size: 0.87rem;
+        max-width: 96vw;
+      }
+
+      .actions-center {
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .btn-primary,
+      .btn {
+        width: 100%;
+        font-size: 1rem;
+      }
+
+      .ai-modal-overlay .preferences-card {
+        padding: 12px 2px;
+        max-width: 99vw;
+      }
+    }
+
+    .login-card {
+      max-width: 420px;
+      margin: 28px auto;
+      background: #fff;
+      border-radius: 14px;
+      padding: 26px 22px;
+      box-shadow: 0 10px 30px rgba(16, 24, 40, 0.08);
+      text-align: center;
+    }
+
+    .login-card__logo {
+      width: 190px;
+      height: 90px;
+      display: block;
+      margin: 4px auto 12px;
+    }
+
+    .login-card__title {
+      font-weight: 800;
+      color: #0f172a;
+      margin-bottom: 12px;
+      font-size: 1.05rem;
+    }
+
+    .login-card .form-section {
+      text-align: left;
+      margin-top: 8px;
+    }
+
+    .login-card .form-group label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 700;
+      color: #374151;
+    }
+
+    .login-card .input-with-icon {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid var(--border);
+      padding: 10px 12px;
+      border-radius: 10px;
+    }
+
+    .login-card .input-with-icon input {
+      border: 0;
+      outline: none;
+      width: 100%;
+      font-size: 1rem;
+    }
+
+    .done-details {
+      margin-top: 10px;
+    }
+
+    .done-list {
+      display: grid;
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    .done-card {
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 10px 12px;
+      background: #fff;
+    }
+
+    .done-title {
+      font-size: 14px;
+      margin-bottom: 8px;
+    }
+
+    .done-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      font-size: 13px;
+      margin: 6px 0;
+    }
+
+    .badge {
+      font-size: 12px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-weight: 700;
+    }
+
+    .badge.old {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .badge.new {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .done-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 8px;
+      min-width: 520px;
+    }
+
+    .done-table th,
+    .done-table td {
+      border-bottom: 1px solid #e5e7eb;
+      padding: 8px;
+      text-align: left;
+      font-size: 13px;
+    }
+
+    .muted {
+      color: #6b7280;
+      font-size: 13px;
+    }
+
+    .course {
+      display: grid;
+      grid-template-columns: 120px 1fr 240px;
+      align-items: center;
+      gap: 16px;
+      padding: 16px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: #fff;
+      transition: box-shadow .15s ease, transform .15s ease;
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .panel-title {
+      margin: 0;
+      font-size: 1.2rem;
+      font-weight: 700;
+    }
+
+    .conflict-note {
+      color: #b91c1c;
+      font-size: .8rem;
+      line-height: 1.3;
+      text-align: center;
+    }
+
+    @media (max-width: 900px) {
+      .course {
+        grid-template-columns: 1fr;
+        align-items: flex-start;
+      }
+
+      .course-code {
+        justify-content: flex-start;
+      }
+
+      .repl {
+        grid-column: 1;
+        justify-self: stretch;
+        width: 100%;
+        margin-top: 8px;
+      }
+
+      .repl[open] {
+        grid-column: 1 / -1;
+      }
+
+      .option {
+        grid-template-columns: 1fr;
+        align-items: flex-start;
+      }
+
+      .option-code {
+        justify-content: flex-start;
+        max-width: 180px;
+        margin-bottom: 8px;
+      }
+
+      .option-fields {
+        width: 100%;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .option-cta {
+        width: 100%;
+        align-items: stretch;
+        margin-top: 8px;
+      }
+
+      .option-btn {
+        width: 100%;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .panel-header {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      #aiSuggestBtn {
+        width: 100%;
+        justify-content: center;
+      }
+
+      .btn-ia__inner {
+        width: 100%;
+        justify-content: center;
+      }
+
+      .option-fields {
+        grid-template-columns: 1fr;
+      }
+
+      .conflict-note {
+        text-align: left;
+      }
+    }
+  </style>
+</head>
+
+<body class="<%= firstName ? '' : 'is-login' %>">
+  <% if (!firstName) { %>
+    <div class="login-bg" aria-hidden="true"></div>
+    <% } %>
+
+      <div class="wrap">
+        <% const _firstName=firstName || null; const _lastName=lastName || null; const _studentId=studentId || '—' ;
+          const _semester=semester || '—' ; const _department=department || '—' ; const _dni=dni || '—' ; const
+          _email=email_institucional || '' ; const _phone=phone || '' ; const _facultyName=facultyName || '' ; const
+          _specialtyName=specialtyName || _department; const _mode=mode || '' ; const _periodRaw=period || '' ; const
+          _enrolled=Array.isArray(schedules) ? schedules : []; const _totalCredits=_enrolled.reduce((sum, c)=> sum +
+          (Number(c.credits) || 0), 0);
+          %>
+
+          <% if (!_firstName) { %>
+            <div class="login-card">
+              <div id="loginTitle" class="login-card__title">
+                <img src="/images/umalogo1.jpg" alt="Universidad María Auxiliadora" class="login-card__logo">
+              </div>
+              <div class="form-section">
+                <form action="/login" method="POST" id="loginForm">
+                  <div class="form-group">
+                    <label for="codigo">Código</label>
+                    <div class="input-with-icon">
+                      <i class="fas fa-user" style="color:#9ca3af"></i>
+                      <input type="text" id="codigo" name="codigo" placeholder="Ingresa tu código" required>
+                    </div>
+                  </div>
+
+                  <div class="form-group" style="margin-top:12px;">
+                    <label for="dni">DNI</label>
+                    <div class="input-with-icon">
+                      <i class="fas fa-id-card" style="color:#9ca3af"></i>
+                      <input type="password" id="dni" name="dni" placeholder="Ingresa tu DNI" required>
+                    </div>
+                  </div>
+
+                  <% if (error) { %>
+                    <div class="error">
+                      <%= error %>
+                    </div>
+                    <% } %>
+
+                      <% if (typeof done !=='undefined' && done) { %>
+                        <div class="success" style="margin-top:12px;">
+                          <strong>
+                            <%= (typeof doneMessage !=='undefined' && doneMessage) ? doneMessage : '' %>
+                          </strong>
+                        </div>
+
+                        <% if (typeof doneData !=='undefined' && doneData) { %>
+                          <details class="done-details">
+                            <summary>Ver detalles</summary>
+
+                            <% if (doneData.submitted_at) { %>
+                              <p class="muted">Enviado: <strong>
+                                  <%= new Date(doneData.submitted_at).toLocaleString('es-PE') %>
+                                </strong></p>
+                              <% } %>
+
+                                <% if (doneData.changes && doneData.changes.length) { %>
+                                  <h4 style="margin-top:12px;">Cambios realizados</h4>
+                                  <div class="done-list">
+                                    <% doneData.changes.forEach(function(ch, idx){ %>
+                                      <div class="done-card">
+                                        <div class="done-title">
+                                          <%= idx + 1 %>. <strong>
+                                              <%= ch.code %>
+                                            </strong> — <%= ch.name %>
+                                        </div>
+
+                                        <div class="done-row">
+                                          <span class="badge old">Antes</span>
+                                          <span>
+                                            Sec. <strong>
+                                              <%= (ch.from && ch.from.group) ? ch.from.group : '—' %>
+                                            </strong>,
+                                            <%= (ch.from && ch.from.day) ? ch.from.day : '—' %>
+                                              <%= (ch.from && ch.from.time) ? ch.from.time : '—' %>
+                                                (<%= (ch.from && ch.from.modality) ? ch.from.modality : '—' %>)
+                                          </span>
+                                        </div>
+
+                                        <div class="done-row">
+                                          <span class="badge new">Después</span>
+                                          <span>
+                                            Sec. <strong>
+                                              <%= (ch.to && ch.to.group) ? ch.to.group : '—' %>
+                                            </strong>,
+                                            <%= (ch.to && ch.to.day) ? ch.to.day : '—' %>
+                                              <%= (ch.to && ch.to.time) ? ch.to.time : '—' %>
+                                                (<%= (ch.to && ch.to.modality) ? ch.to.modality : '—' %>)
+                                          </span>
+                                        </div>
+                                      </div>
+                                      <% }) %>
+                                  </div>
+                                  <% } else { %>
+                                    <p class="muted" style="margin-top:10px;">No se registraron cambios.</p>
+                                    <% } %>
+
+                                      <% if (doneData.finalCourses && doneData.finalCourses.length) { %>
+                                        <h4 style="margin-top:14px;">Horario final</h4>
+                                        <div style="overflow:auto;">
+                                          <table class="done-table">
+                                            <thead>
+                                              <tr>
+                                                <th>Curso</th>
+                                                <th>Sec.</th>
+                                                <th>Día</th>
+                                                <th>Horario</th>
+                                                <th>Modalidad</th>
+                                              </tr>
+                                            </thead>
+                                            <tbody>
+                                              <% doneData.finalCourses.forEach(function(c){ %>
+                                                <tr>
+                                                  <td><strong>
+                                                      <%= c.code %>
+                                                    </strong> — <%= c.name %>
+                                                  </td>
+                                                  <td>
+                                                    <%= c.group || '—' %>
+                                                  </td>
+                                                  <td>
+                                                    <%= c.day || '—' %>
+                                                  </td>
+                                                  <td>
+                                                    <%= c.time || '—' %>
+                                                  </td>
+                                                  <td>
+                                                    <%= c.modality || '—' %>
+                                                  </td>
+                                                </tr>
+                                                <% }) %>
+                                            </tbody>
+                                          </table>
+                                        </div>
+                                        <% } %>
+                          </details>
+                          <% } %>
+
+                            <% } %>
+
+
+                              <div style="margin-top:18px; text-align:center;">
+                                <button type="submit" class="login-btn pulse" <%=done ? 'disabled' : '' %>>
+                                  Ingresar
+                                </button>
+
+                              </div>
+                </form>
+                <div style="margin-top:14px;">
+                  <a href="/admin/login" class="btn-secondary"
+                    style="display:block; text-align:center; text-decoration:none;">
+                    Ingreso Admin
+                  </a>
+                </div>
+
+
+                <div class="login-footer" style="margin-top:12px;text-align:center;color:#6b7280;">
+                  ¿Problemas para acceder? Contacta con soporte técnico.
+                </div>
+              </div>
+            </div>
+
+            <% } else if (!done) { %>
+
+              <div class="title-container">
+                <div style="display:flex;align-items:center;gap:12px;">
+                  <img src="/images/umalogo1.jpg" alt="UMA" class="uma-header-logo" style="margin-right:18px;" />
+                  <h1 style="font-size:2rem; font-weight:800; color:#1e293b; margin:0;">
+                    Portal de Rectificación de Cursos
+                  </h1>
+                </div>
+                <form action="/logout" method="POST" style="margin:0;">
+                  <button type="submit" class="logout-btn" aria-label="Logout">
+                    <span>Cerrar Sesión</span>
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M9 18l6-6-6-6"></path>
+                    </svg>
+                  </button>
+                </form>
+              </div>
+
+              <div id="studentInfoBox" class="card profile-shell" style="margin-bottom:18px;">
+                <div class="header">
+                  <div class="header-row">
+                    <div class="avatar">
+                      <%= (_firstName && _firstName[0]) || "U" %>
+                    </div>
+                    <div class="header-main">
+                      <%= (_firstName + " " + _lastName).toUpperCase() %>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="profile-cards">
+                  <div class="profile-card">
+                    <span class="profile-label">Código</span>
+                    <span class="profile-value">
+                      <%= _studentId %>
+                    </span>
+                  </div>
+                  <div class="profile-card">
+                    <span class="profile-label">DNI</span>
+                    <span class="profile-value">
+                      <%= _dni %>
+                    </span>
+                  </div>
+                  <div class="profile-card">
+                    <span class="profile-label">Programa</span>
+                    <span class="profile-value">
+                      <%= _specialtyName %>
+                    </span>
+                  </div>
+                  <div class="profile-card">
+                    <span class="profile-label">Facultad</span>
+                    <span class="profile-value">
+                      <%= _facultyName || "—" %>
+                    </span>
+                  </div>
+                  <div class="profile-card">
+                    <span class="profile-label">Periodo</span>
+                    <span class="profile-value">
+                      <%= _semester %>
+                    </span>
+                  </div>
+                  <div class="profile-card">
+                    <span class="profile-label">Modalidad</span>
+                    <span class="profile-value">
+                      <%= _mode || "—" %>
+                    </span>
+                  </div>
+                  <% if (_email) { %>
+                    <div class="profile-card">
+                      <span class="profile-label">Correo</span>
+                      <span class="profile-value">
+                        <%= _email %>
+                      </span>
+                    </div>
+                    <% } %>
+                      <% if (_phone) { %>
+                        <div class="profile-card">
+                          <span class="profile-label">Teléfono</span>
+                          <span class="profile-value">
+                            <%= _phone %>
+                          </span>
+                        </div>
+                        <% } %>
+                </div>
+              </div>
+              <div id="afterConfirmNotice" class="card hidden" style="margin-bottom:18px;">
+                <div style="padding:18px 20px;">
+                  <div style="display:flex; align-items:center; gap:12px;">
+                    <div
+                      style="width:44px;height:44px;border-radius:14px;background:#ecfdf5;border:1px solid #bbf7d0;display:flex;align-items:center;justify-content:center;font-size:22px;">
+                      ✅
+                    </div>
+                    <div>
+                      <div style="font-weight:900;color:#0f172a;font-size:1.08rem;">
+                        Solicitud enviada
+                      </div>
+                      <div class="muted" style="margin-top:2px;">
+                        Tus cambios han sido enviados correctamente. Recibirás el horario actualizado por correo.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div id="aiControlsBox" class="panel-header">
+                <h3 class="panel-title">Cursos Matriculados</h3>
+
+                <div class="panel-actions">
+                  <button type="button" id="guideBtn" class="btn-guide">
+                    <img src="/images/guide.png" alt="Guía" class="btn-guide__ico">
+                    <span>Guía</span>
+                  </button>
+
+                  <button id="aiSuggestBtn" class="btn-ia">
+                    <span class="btn-ia__inner">
+                      <span class="btn-ia__label">Generar con IA</span>
+                    </span>
+                  </button>
+                </div>
+              </div>
+
+
+              <div id="coursesBox">
+                <% if (!_enrolled.length) { %>
+                  <p class="muted">No hay cursos inscritos.</p>
+                  <% } else { %>
+                    <div class="course-container">
+                      <% _enrolled.forEach(function(course, idx){ %>
+                        <div class="course" id="c-<%= idx %>" data-code="<%= course.courseCode %>"
+                          data-name="<%= course.courseName %>" data-period="<%= course.period || _periodRaw %>">
+                          <div class="course-code">
+                            <span class="badge purple">
+                              <%= course.courseCode || "—" %>
+                            </span>
+                            <!-- pill shown only when this course has changes -->
+                            <span class="course-change-pill hidden" id="courseChanged-<%= idx %>">
+                              Cambiado
+                            </span>
+                          </div>
+
+                          <div class="course-details">
+                            <h4 class="course-title">
+                              <%= course.courseName || "—" %>
+                            </h4>
+                            <div class="course-meta">
+                              <span class="meta-item"><span>Docente:</span> <strong>
+                                  <%= course.teacherName || "—" %>
+                                </strong></span>
+                              <span class="meta-item"><span>Grupo:</span> <strong>
+                                  <%= course.groupCode || course.section || "—" %>
+                                </strong></span>
+                              <span class="meta-item"><span>Día:</span> <strong>
+                                  <%= course.day || "—" %>
+                                </strong></span>
+                              <span class="meta-item"><span>Hora:</span> <strong>
+                                  <%= course.hour || "—" %>
+                                </strong></span>
+                              <span class="meta-item"><span>Modalidad:</span> <strong>
+                                  <%= course.modality || "—" %>
+                                </strong></span>
+                            </div>
+                          </div>
+
+                          <details class="repl" data-course="<%= course.courseCode %>">
+
+                            <summary>Reemplazar curso</summary>
+
+                            <div class="replacement-options" id="opts-<%= idx %>" data-loaded="0">
+                              <div class="option"><em>Open to load options…</em></div>
+                            </div>
+                          </details>
+
+                        </div>
+
+                        <div id="chg-<%= idx %>"></div>
+                        <% }); %>
+                    </div>
+                    <% } %>
+
+                      <!-- ACTIONS -->
+                      <div id="actionButtonsBox" class="actions-center">
+                        <button id="resetScheduleBtn" class="btn-secondary">
+                          Restablecer horario original
+                        </button>
+
+                        <button id="seeTimetableBtn" class="btn-primary">
+                          Ver nuevo horario
+                        </button>
+
+                        <button id="confirmBtn" class="btn-primary">
+                          Confirmar y Descargar PDF
+                        </button>
+                      </div>
+
+                      <div id="timetablePanel" class="timetable hidden">
+                        <div class="tt-header">
+                          <h3 style="margin:0 0 0 8px;">Mi Horario</h3>
+                          <button id="closeTimetable" class="tt-close">Cerrar</button>
+                        </div>
+
+                        <div class="tt-section" id="ttSectionOriginal">
+                          <div class="tt-section-title">
+                            <span>Horario original</span>
+                            <span class="tt-count">(<span id="courseCountOriginal">0</span> cursos)</span>
+                          </div>
+                          <div id="ttGridOriginal" class="ttGridWrapper"></div>
+                        </div>
+
+                        <div class="tt-section" id="ttSectionNew" style="margin-top:16px;">
+                          <div class="tt-section-title">
+                            <span>Horario nuevo</span>
+                            <span class="tt-count">(<span id="courseCountNew">0</span> cursos)</span>
+                          </div>
+                          <div id="ttGridNew" class="ttGridWrapper"></div>
+                        </div>
+
+
+
+                        <div id="confirmModal" class="modal-overlay">
+                          <div class="modal-window" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+                            <div class="modal-header">
+                              <div id="confirmTitle" class="modal-title">Confirmar cambios</div>
+                              <button id="confirmClose" class="modal-close" aria-label="Cerrar">×</button>
+                            </div>
+                            <div class="modal-body">
+                              <p style="margin:0 0 6px;">¿Estás seguro de confirmar esta rectificación?</p>
+                              <p style="margin:0;color:#6b7280;"><strong>Después de enviar</strong> no podrás volver a
+                                cambiar los horarios.</p>
+                            </div>
+                            <div class="modal-actions">
+                              <button id="confirmCancel" class="btn-ghost">Seguir editando</button>
+                              <button id="confirmSend" class="btn-danger">Enviar y descargar PDF</button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div id="helpPanel" class="panel" style="margin-top:18px; text-align:center;">
+                        <p class="muted">¿Necesitas ayuda con la selección de cursos? Contacta a tu asesor académico.
+                        </p>
+                      </div>
+                      <% } else { %>
+                        <!-- ✅ If student is already DONE but still has session, block portal -->
+                        <div class="card" style="padding:22px; margin-top:22px;">
+                          <div class="success">
+                            <strong>
+                              <%= doneMessage || "Tu solicitud ya fue enviada. No puedes ingresar nuevamente." %>
+                            </strong>
+                          </div>
+
+                          <% if (typeof doneData !=='undefined' && doneData) { %>
+                            <details class="done-details">
+                              <summary>Ver detalles</summary>
+
+                              <% if (doneData.submitted_at) { %>
+                                <p class="muted">Enviado: <strong>
+                                    <%= new Date(doneData.submitted_at).toLocaleString('es-PE') %>
+                                  </strong></p>
+                                <% } %>
+
+                                  <% if (doneData.changes && doneData.changes.length) { %>
+                                    <h4 style="margin-top:12px;">Cambios realizados</h4>
+                                    <div class="done-list">
+                                      <% doneData.changes.forEach(function(ch, idx){ %>
+                                        <div class="done-card">
+                                          <div class="done-title">
+                                            <%= idx + 1 %>. <strong>
+                                                <%= ch.code %>
+                                              </strong> — <%= ch.name %>
+                                          </div>
+
+                                          <div class="done-row">
+                                            <span class="badge old">Antes</span>
+                                            <span>
+                                              Sec. <strong>
+                                                <%= (ch.from && ch.from.group) ? ch.from.group : '—' %>
+                                              </strong>,
+                                              <%= (ch.from && ch.from.day) ? ch.from.day : '—' %>
+                                                <%= (ch.from && ch.from.time) ? ch.from.time : '—' %>
+                                                  (<%= (ch.from && ch.from.modality) ? ch.from.modality : '—' %>)
+                                            </span>
+                                          </div>
+
+                                          <div class="done-row">
+                                            <span class="badge new">Después</span>
+                                            <span>
+                                              Sec. <strong>
+                                                <%= (ch.to && ch.to.group) ? ch.to.group : '—' %>
+                                              </strong>,
+                                              <%= (ch.to && ch.to.day) ? ch.to.day : '—' %>
+                                                <%= (ch.to && ch.to.time) ? ch.to.time : '—' %>
+                                                  (<%= (ch.to && ch.to.modality) ? ch.to.modality : '—' %>)
+                                            </span>
+                                          </div>
+                                        </div>
+                                        <% }) %>
+                                    </div>
+                                    <% } else { %>
+                                      <p class="muted" style="margin-top:10px;">No se registraron cambios.</p>
+                                      <% } %>
+
+                                        <% if (doneData.finalCourses && doneData.finalCourses.length) { %>
+                                          <h4 style="margin-top:14px;">Horario final</h4>
+                                          <div style="overflow:auto;">
+                                            <table class="done-table">
+                                              <thead>
+                                                <tr>
+                                                  <th>Curso</th>
+                                                  <th>Sec.</th>
+                                                  <th>Día</th>
+                                                  <th>Horario</th>
+                                                  <th>Modalidad</th>
+                                                </tr>
+                                              </thead>
+                                              <tbody>
+                                                <% doneData.finalCourses.forEach(function(c){ %>
+                                                  <tr>
+                                                    <td><strong>
+                                                        <%= c.code %>
+                                                      </strong> — <%= c.name %>
+                                                    </td>
+                                                    <td>
+                                                      <%= c.group || '—' %>
+                                                    </td>
+                                                    <td>
+                                                      <%= c.day || '—' %>
+                                                    </td>
+                                                    <td>
+                                                      <%= c.time || '—' %>
+                                                    </td>
+                                                    <td>
+                                                      <%= c.modality || '—' %>
+                                                    </td>
+                                                  </tr>
+                                                  <% }) %>
+                                              </tbody>
+                                            </table>
+                                          </div>
+                                          <% } %>
+                            </details>
+                            <% } %>
+
+
+                              <form action="/logout" method="POST" style="margin-top:16px;">
+                                <button type="submit" class="logout-btn">Cerrar sesión</button>
+                              </form>
+                        </div>
+                        <% } %>
+
+              </div>
+
+              <!-- Loader handled by loader.js -->
+
+              <div id="aiPreferencesModal" class="ai-modal-overlay">
+                <div class="preferences-card">
+                  <div class="card-header">
+                    <h1 class="card-title">Configurar preferencias para IA</h1>
+                    <p class="card-subtitle">Selecciona los días que prefieres libres</p>
+                  </div>
+
+
+
+                  <div class="section-title">Días libres</div>
+                  <div class="days-grid">
+                    <div class="day-checkbox">
+                      <label class="checkbox-label">
+                        <input type="checkbox" class="checkbox-input" value="Lunes">
+                        <div class="checkbox-custom">L</div>
+                      </label>
+                      <span class="day-name">Lunes</span>
+                    </div>
+                    <div class="day-checkbox">
+                      <label class="checkbox-label">
+                        <input type="checkbox" class="checkbox-input" value="Martes">
+                        <div class="checkbox-custom">M</div>
+                      </label>
+                      <span class="day-name">Martes</span>
+                    </div>
+                    <div class="day-checkbox">
+                      <label class="checkbox-label">
+                        <input type="checkbox" class="checkbox-input" value="Miércoles">
+                        <div class="checkbox-custom">X</div>
+                      </label>
+                      <span class="day-name">Miércoles</span>
+                    </div>
+                    <div class="day-checkbox">
+                      <label class="checkbox-label">
+                        <input type="checkbox" class="checkbox-input" value="Jueves">
+                        <div class="checkbox-custom">J</div>
+                      </label>
+                      <span class="day-name">Jueves</span>
+                    </div>
+                    <div class="day-checkbox">
+                      <label class="checkbox-label">
+                        <input type="checkbox" class="checkbox-input" value="Viernes">
+                        <div class="checkbox-custom">V</div>
+                      </label>
+                      <span class="day-name">Viernes</span>
+                    </div>
+                    <div class="day-checkbox">
+                      <label class="checkbox-label">
+                        <input type="checkbox" class="checkbox-input" value="Sábado">
+                        <div class="checkbox-custom">S</div>
+                      </label>
+                      <span class="day-name">Sábado</span>
+                    </div>
+                  </div>
+
+                  <div class="buttons-container">
+                    <button class="btn btn-cancel" id="aiModalCancel">Cancelar</button>
+                    <button class="btn btn-generate" id="aiModalGenerate">Generar horario</button>
+                  </div>
+                </div>
+              </div>
+              <div id="guideModal" class="guide-modal-overlay" aria-hidden="true">
+                <div class="guide-card" role="dialog" aria-modal="true" aria-labelledby="guideTitle">
+                  <div class="guide-header">
+                    <div>
+                      <div id="guideTitle" class="guide-title">Guía rápida</div>
+                      <div class="guide-subtitle">Cómo rectificar tu horario en 5 pasos</div>
+                    </div>
+                    <button id="guideClose" class="guide-x" type="button" aria-label="Cerrar">×</button>
+                  </div>
+
+                  <ol class="guide-steps">
+                    <li><b>Revisa</b> tus cursos matriculados (código, docente, grupo, día y hora).</li>
+                    <li>Abre <b>“Reemplazar curso”</b> para ver turnos disponibles.</li>
+                    <li>Elige un turno con cupos: <b>“Usar este turno completo”</b> (si dice “Turno lleno”, no se
+                      puede).</li>
+                    <li>Presiona <b>“Ver nuevo horario”</b> para comparar <b>Original</b> vs <b>Nuevo</b>.</li>
+                    <li>Cuando estés listo, presiona <b>“Confirmar y Descargar PDF”</b>.</li>
+                  </ol>
+
+                  <div class="guide-tips">
+                    <div class="guide-tip"><b>✅ Consejo:</b> Si te equivocaste, usa <b>“Restablecer horario
+                        original”</b>.</div>
+                    <div class="guide-tip"><b>⚠️ Importante:</b> Si un turno dice <b>“Horario en conflicto”</b>, choca
+                      con otro curso.</div>
+                  </div>
+
+                  <label class="guide-check">
+                    <input id="guideDontShow" type="checkbox" />
+                    No volver a mostrar
+                  </label>
+
+                  <div class="guide-actions">
+                    <button id="guideOk" type="button" class="btn-primary">Entendido</button>
+                  </div>
+                </div>
+              </div>
+              <script src="/js/loader.js"></script>
+              <script>
+                document.addEventListener('DOMContentLoaded', function () {
+                  const loginForm = document.getElementById('loginForm');
+                  if (loginForm) loginForm.addEventListener('submit', () => {
+                    if (window.showLoader) window.showLoader();
+                  });
+
+                  window.addEventListener('load', () => {
+                    if (window.hideLoader) window.hideLoader();
+                  });
+
+                  window.addEventListener("pageshow", () => {
+                    document.body.classList.remove("ai-modal-open", "guide-modal-open");
+                  });
+
+
+                  // ===== Guide modal (first-time + button) =====
+                  const GUIDE_KEY = 'uma_rectify_guide_v1_dismissed';
+
+                  const guideBtn = document.getElementById('guideBtn');
+                  const guideModal = document.getElementById('guideModal');
+                  const guideClose = document.getElementById('guideClose');
+                  const guideOk = document.getElementById('guideOk');
+                  const guideDontShow = document.getElementById('guideDontShow');
+
+                  function openGuide() {
+                    if (!guideModal) return;
+                    guideModal.style.display = 'flex';
+                    document.body.classList.add('guide-modal-open');
+                    guideModal.setAttribute('aria-hidden', 'false');
+                  }
+
+                  function closeGuide() {
+                    if (!guideModal) return;
+
+                    // Save preference if checked
+                    try {
+                      if (guideDontShow && guideDontShow.checked) {
+                        localStorage.setItem(GUIDE_KEY, '1');
+                      }
+                    } catch (e) { }
+
+                    guideModal.style.display = 'none';
+                    document.body.classList.remove('guide-modal-open');
+                    guideModal.setAttribute('aria-hidden', 'true');
+                  }
+
+                  if (guideBtn) guideBtn.addEventListener('click', openGuide);
+                  if (guideClose) guideClose.addEventListener('click', closeGuide);
+                  if (guideOk) guideOk.addEventListener('click', closeGuide);
+
+                  // close on backdrop click
+                  if (guideModal) {
+                    guideModal.addEventListener('click', (e) => {
+                      if (e.target === guideModal) closeGuide();
+                    });
+                  }
+
+                  // close on ESC
+                  document.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape' && guideModal && guideModal.style.display === 'flex') {
+                      closeGuide();
+                    }
+                  });
+                  // ===== Blocked courses modal (frontend) =====
+                  function showBlockedPopup(blocked) {
+                    if (!Array.isArray(blocked) || blocked.length === 0) return;
+                    console.log("showBlockedPopup called", blocked);
+
+                    const modal = document.getElementById("aiBlockedModal");
+                    const list = document.getElementById("aiBlockedList");
+                    if (!modal || !list) return;
+
+                    list.innerHTML = "";
+
+                    blocked.forEach((x) => {
+                      const li = document.createElement("li");
+
+                      const isFull = x.reason === "SIN_VACANTES";
+                      const pillClass = isFull ? "amber" : "red";
+                      const pillText = isFull ? "Turno lleno" : "Conflicto";
+
+                      li.innerHTML = `
+      <div class="ai-blocked-title">${escapeHtml(x.code || "")} — ${escapeHtml(x.name || "")}</div>
+      <div class="ai-blocked-reason">
+        <span class="ai-pill ${pillClass}">${pillText}</span>
+        ${escapeHtml(x.detail || "")}
+      </div>
+    `;
+                      list.appendChild(li);
+                    });
+
+                    modal.classList.add("show");
+                    modal.style.display = "flex";
+                    modal.setAttribute("aria-hidden", "false");
+                  }
+
+                  function hideBlockedPopup() {
+                    const modal = document.getElementById("aiBlockedModal");
+                    if (!modal) return;
+                    modal.classList.remove("show");
+                    modal.style.display = "none";
+                    modal.setAttribute("aria-hidden", "true");
+                  }
+
+                  document.getElementById("aiBlockedClose")?.addEventListener("click", hideBlockedPopup);
+                  document.getElementById("aiBlockedModal")?.addEventListener("click", (e) => {
+                    if (e.target && e.target.id === "aiBlockedModal") hideBlockedPopup();
+                  });
+
+
+                  // auto-show once after login (not on login page)
+                  if (!document.body.classList.contains('is-login')) {
+                    try {
+                      const dismissed = localStorage.getItem(GUIDE_KEY) === '1';
+                      if (!dismissed) openGuide();
+                    } catch (e) {
+                      // If localStorage blocked, still show once
+                      openGuide();
+                    }
+                  }
+
+                  const aiSuggestBtn = document.getElementById('aiSuggestBtn');
+                  const aiPreferencesModal = document.getElementById('aiPreferencesModal');
+                  const aiModalCancel = document.getElementById('aiModalCancel');
+                  const aiModalGenerate = document.getElementById('aiModalGenerate');
+                  const aiModalCheckboxes = aiPreferencesModal?.querySelectorAll('.checkbox-input');
+
+                  const ttToggleNew = document.getElementById('ttTabNew');
+                  let hasNewTimetable = false;
+                  let serverFinalPlan = null;
+
+                  function showAiModal() {
+                    if (!aiPreferencesModal) return;
+                    aiPreferencesModal.style.display = 'flex';
+                    document.body.classList.add('ai-modal-open');
+                  }
+                  function hideAiModal() {
+                    if (!aiPreferencesModal) return;
+                    aiPreferencesModal.style.display = 'none';
+                    document.body.classList.remove('ai-modal-open');
+                  }
+
+                  if (aiSuggestBtn) aiSuggestBtn.addEventListener('click', showAiModal);
+                  if (aiModalCancel) aiModalCancel.addEventListener('click', hideAiModal);
+
+                  // ==== SERVER-SIDE IA: call /ai-local and apply result ====
+                  if (aiModalGenerate) aiModalGenerate.addEventListener('click', async function () {
+                    const freeDays = Array.from(aiModalCheckboxes || [])
+                      .filter(cb => cb.checked)
+                      .map(cb => cb.value);
+
+                    hideAiModal();
+                    const overlay = document.getElementById('loadingOverlay');
+                    overlay?.classList.add('active');
+
+                    try {
+                      const resp = await fetch('/ai-local', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ preferences: { freeDays } })
+                      });
+                      const data = await resp.json();
+
+                      if (!resp.ok || !data || data.ok === false) {
+                        alert('No se pudo generar un horario con IA.');
+                        return;
+                      }
+
+                      applyServerPlan(data);
+
+                      refreshTimetableIfOpen();
+                      document.getElementById('seeTimetableBtn')?.click();
+
+                      // ✅ FIRST hide loader, THEN show popup
+                      overlay?.classList.remove('active');
+
+                      // debug (optional but recommended)
+                      console.log('AI blocked list:', data.blocked);
+
+                      if (Array.isArray(data.blocked) && data.blocked.length) {
+                        showBlockedPopup(data.blocked);
+                      }
+
+
+                    } catch (err) {
+                      console.error(err);
+                      alert('Ocurrió un error generando el horario.');
+                    } finally {
+
+                    }
+
+
+                  });
+
+                  const norm = (s) => String(s || '').replace(/[^A-Z0-9]/gi, '').toUpperCase();
+                  const stripAcc = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                  const canonicalDay = s => {
+                    const k = stripAcc(String(s || '')).toLowerCase();
+                    const map = { lunes: 'Lunes', martes: 'Martes', miercoles: 'Miércoles', jueves: 'Jueves', viernes: 'Viernes', sabado: 'Sábado', domingo: 'Domingo' };
+                    return map[k] || (s || '—');
+                  };
+
+                  const modalityDisplayNames = {
+                    'TEORÍA VIRTUAL': 'TEORÍA VIRTUAL', 'TEORIA VIRTUAL': 'TEORÍA VIRTUAL', 'VIRTUAL': 'TEORÍA VIRTUAL', 'TEV': 'TEORÍA VIRTUAL', 'VIR': 'TEORÍA VIRTUAL',
+                    'TEORÍA PRESENCIAL': 'TEORÍA PRESENCIAL', 'TEORIA PRESENCIAL': 'TEORÍA PRESENCIAL', 'PRESENCIAL': 'TEORÍA PRESENCIAL', 'TEP': 'TEORÍA PRESENCIAL',
+                    'LABORATORIO PRESENCIAL': 'LABORATORIO PRESENCIAL', 'LAB PRESENCIAL': 'LABORATORIO PRESENCIAL', 'LBP': 'LABORATORIO PRESENCIAL',
+                    'V': 'TEORÍA VIRTUAL', 'P': 'TEORÍA PRESENCIAL', 'L': 'LABORATORIO PRESENCIAL', 'PRE': 'TEORÍA PRESENCIAL'
+                  };
+                  function normalizeModalityDisplay(m) {
+                    const t = stripAcc(String(m || '')).toUpperCase().trim();
+                    return modalityDisplayNames[t] || (m || '—');
+                  }
+                  function modalityLetter(mod) {
+                    const m = stripAcc(String(normalizeModalityDisplay(mod) || '')).toUpperCase();
+                    if (m.includes('LAB')) return 'L';
+                    if (m.includes('VIRTUAL')) return 'V';
+                    if (m.includes('PRE')) return 'P';
+                    return '—';
+                  }
+
+                  function normalizeTime(t) {
+                    const s = String(t || '').trim();
+                    const m = s.match(/(\d{1,2}):(\d{2}).*?(\d{1,2}):(\d{2})/);
+                    if (m) return `${String(m[1]).padStart(2, '0')}:${m[2]}–${String(m[3]).padStart(2, '0')}:${m[4]}`;
+                    return s.replace(/\s*-\s*/g, '–').replace(/\s*–\s*/g, '–').replace(/\s+to\s+/i, '–').replace(/\s{2,}/g, ' ');
+                  }
+                  const sameDayKey = d => stripAcc(String(d || '')).toLowerCase();
+                  function parseRange(range) {
+                    const m = String(range || '').match(/(\d{1,2}):(\d{2}).*?(\d{1,2}):(\d{2})/);
+                    if (!m) return null;
+                    const a = (+m[1]) * 60 + (+m[2]);
+                    const b = (+m[3]) * 60 + (+m[4]);
+                    return a < b ? { start: a, end: b } : { start: b, end: a };
+                  }
+                  const overlap = (a, b) => a && b && a.start < b.end && b.start < a.end;
+
+                  const originals = {};
+                  const changes = {};
+                  function getChangedCodesSet() {
+                    const set = new Set();
+                    Object.keys(changes).forEach(rowId => {
+                      const row = document.getElementById(rowId);
+                      const code = row?.getAttribute('data-code') || changes[rowId]?.code;
+                      if (code) set.add(norm(code));
+                    });
+                    return set;
+                  }
+
+
+                  function readCurrent(row) {
+                    const badge = row.querySelector('.badge');
+                    const metaItems = row.querySelectorAll('.course-meta .meta-item');
+                    return {
+                      code: (badge && badge.textContent || '—').trim(),
+                      name: (row.querySelector('.course-title')?.textContent || '—').trim(),
+                      group: metaItems[1] ? metaItems[1].querySelector('strong').textContent.trim() : '—',
+                      day: canonicalDay(metaItems[2] ? metaItems[2].querySelector('strong').textContent.trim() : '—'),
+                      time: normalizeTime(metaItems[3] ? metaItems[3].querySelector('strong').textContent.trim() : '—'),
+                      modality: normalizeModalityDisplay(metaItems[4] ? metaItems[4].querySelector('strong').textContent.trim() : '—')
+                    };
+                  }
+
+                  function renderChange(idx, before, after) {
+                    const host = document.getElementById('chg-' + idx);
+                    if (!host) return;
+                    host.className = 'change-wrapper';
+                    host.innerHTML = `
+        <div class="change-title">Cambios</div>
+        <div class="change-compare">
+          <div class="change-card">
+            <div class="chg-field"><span class="label">Grupo :</span><span class="value">${escapeHtml(before.group)}</span></div>
+            <div class="chg-field"><span class="label">Día :</span><span class="value">${escapeHtml(before.day)}</span></div>
+            <div class="chg-field"><span class="label">Hora :</span><span class="value">${escapeHtml(before.time)}</span></div>
+            <div class="chg-field"><span class="label">Modalidad :</span><span class="value">${escapeHtml(before.modality)}</span></div>
+          </div>
+          <div class="change-arrow">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>
+          </div>
+          <div class="change-card">
+            <div class="chg-field"><span class="label">Grupo :</span><span class="value">${escapeHtml(after.group)}</span></div>
+            <div class="chg-field"><span class="label">Día :</span><span class="value">${escapeHtml(after.day)}</span></div>
+            <div class="chg-field"><span class="label">Hora :</span><span class="value">${escapeHtml(after.time)}</span></div>
+            <div class="chg-field"><span class="label">Modalidad :</span><span class="value">${escapeHtml(after.modality)}</span></div>
+          </div>
+        </div>`;
+                  }
+
+                  function buildPlanExcept(excludeRowId) {
+                    const entries = [];
+                    document.querySelectorAll('.course').forEach(row => {
+                      if (excludeRowId && row.id === excludeRowId) return;
+                      const base = originals[row.id] || readCurrent(row);
+                      const sel = changes[row.id];
+                      const day = canonicalDay(sel?.day || base.day);
+                      const time = normalizeTime(sel?.time || base.time);
+                      const range = parseRange(time);
+                      if (!range) return;
+                      const code = row.getAttribute('data-code') || base.code;
+                      entries.push({ code, day, time, start: range.start, end: range.end });
+                    });
+                    return entries;
+                  }
+
+                  function buildPlanWithoutCourse(courseCode) {
+                    const excludeKey = norm(courseCode || '');
+                    const entries = [];
+                    document.querySelectorAll('.course').forEach(row => {
+                      const base = originals[row.id] || readCurrent(row);
+                      const code = row.getAttribute('data-code') || base.code;
+                      if (excludeKey && norm(code) === excludeKey) return;
+                      const sel = changes[row.id];
+                      const day = canonicalDay(sel?.day || base.day);
+                      const time = normalizeTime(sel?.time || base.time);
+                      const range = parseRange(time);
+                      if (!range) return;
+                      entries.push({ code, day, time, start: range.start, end: range.end });
+                    });
+                    return entries;
+                  }
+
+                  function resetChanges() {
+                    // 1) Clear logical changes + visual highlight on each course
+                    Object.keys(changes).forEach(rowId => {
+                      delete changes[rowId];
+                      markCourseChanged(rowId, false);
+                    });
+
+                    // 2) Clear “Cambios” boxes
+                    document.querySelectorAll('.change-wrapper').forEach(el => {
+                      el.className = '';
+                      el.innerHTML = '';
+                    });
+
+                    // 3) Forget any IA plan
+                    serverFinalPlan = null;
+
+                    // 4) Reset “we have a new timetable” flag
+                    if (typeof hasNewTimetable !== 'undefined') {
+                      hasNewTimetable = false;
+                    }
+
+                    // 5) Lock toggle to original & clear new grid
+                    const tabNew = document.getElementById('ttTabNew');
+                    if (tabNew) {
+                      tabNew.disabled = true;
+                      tabNew.classList.add('tt-tab-disabled');
+                    }
+                    const gridNew = document.getElementById('ttGridNew');
+                    if (gridNew) {
+                      gridNew.innerHTML = '';
+                    }
+                  }
+
+
+                  function clearAllChangesUI() {
+                    Object.keys(changes).forEach(k => delete changes[k]);
+                    document.querySelectorAll('[id^="chg-"]').forEach(el => {
+                      el.className = 'change-wrapper';
+                      el.innerHTML = '';
+                    });
+                  }
+
+                  function getConflict(plan, day, time) {
+                    const r = parseRange(time);
+                    if (!r) return null;
+                    const key = sameDayKey(day);
+                    for (const p of plan) {
+                      if (sameDayKey(p.day) !== key) continue;
+                      if (overlap(r, p)) return p;
+                    }
+                    return null;
+                  }
+
+                  function classifyModType(mod) {
+                    const m = normalizeModalityDisplay(mod || '').toUpperCase();
+                    if (m.includes('LAB')) return 'L';
+                    if (m.includes('VIRT') || m.includes('TEOR')) return 'T';
+                    return 'O';
+                  }
+                  // Highlight a course row as "changed" (Cambiado pill + tinted background)
+                  function markCourseChanged(rowId, changed) {
+                    const row = document.getElementById(rowId);
+                    if (!row) return;
+
+                    const idx = (rowId.split('-')[1] || '').trim();
+                    const pill = document.getElementById('courseChanged-' + idx);
+
+                    if (changed) {
+                      row.classList.add('course--changed');
+                      if (pill) pill.classList.remove('hidden');
+                    } else {
+                      row.classList.remove('course--changed');
+                      if (pill) pill.classList.add('hidden');
+                    }
+                  }
+
+
+                  function getGroupConflict(plan, option) {
+                    const sessions = Array.isArray(option.sessions) ? option.sessions : [];
+                    if (sessions.length) {
+                      for (const s of sessions) {
+                        const day = canonicalDay(s.day || s.dayName || "—");
+                        const time = normalizeTime(
+                          s.time || `${s.start || s.hourStart || ''}-${s.end || s.hourEnd || ''}`
+                        );
+                        const conflict = getConflict(plan, day, time);
+                        if (conflict) return conflict;
+                      }
+                      return null;
+                    }
+                    const dt = parseDayTimeFromOption(option);
+                    return getConflict(plan, dt.day, dt.time);
+                  }
+
+                  function parseDayTimeFromOption(o, preferredModality) {
+                    const sessions = Array.isArray(o.sessions) ? o.sessions : null;
+
+                    if (sessions && sessions.length) {
+                      let seg = null;
+                      if (preferredModality) {
+                        const prefType = classifyModType(preferredModality);
+                        seg = sessions.find(s => classifyModType(s.modality || s.modalityNorm) === prefType) || null;
+                      }
+                      if (!seg) seg = sessions[0];
+
+                      const day = canonicalDay(seg.day || seg.dayName || "—");
+                      const time = normalizeTime(
+                        seg.time || `${seg.start || seg.hourStart || ''}-${seg.end || seg.hourEnd || ''}`
+                      );
+                      return { day, time };
+                    }
+
+                    let day = o.day || "", time = normalizeTime(o.hour || o.time || "");
+                    if ((!day || !time) && o.scheduleText) {
+                      const first = String(o.scheduleText).split("•")[0].trim();
+                      const m = first.match(/^([A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+)\s+(\d{1,2}:\d{2}\s*[-–]?\s*\d{1,2}:\d{2})/);
+                      if (m) { day = day || m[1]; time = normalizeTime(m[2]); }
+                      else if (!day) { day = first.split(/\s+/)[0]; }
+                    }
+                    return { day: canonicalDay(day || "—"), time: time || "—" };
+                  }
+
+
+
+                  (function groupEnrolledCards() {
+                    const byCode = {};
+                    document.querySelectorAll('.course').forEach(row => {
+                      const code = row.getAttribute('data-code') || '';
+                      if (!byCode[code]) byCode[code] = [];
+                      byCode[code].push(row);
+                    });
+
+                    Object.values(byCode).forEach(rows => {
+                      if (rows.length <= 1) return;
+
+                      const withData = rows.map(r => ({ row: r, data: readCurrent(r) }));
+                      let mainEntry =
+                        withData.find(e => classifyModType(e.data.modality) === 'T') ||
+                        withData[0];
+
+                      const mainRow = mainEntry.row;
+                      const others = rows.filter(r => r !== mainRow);
+
+                      const hasTheory = withData.some(e => classifyModType(e.data.modality) === 'T');
+                      const hasLab = withData.some(e => classifyModType(e.data.modality) === 'L');
+
+                      const meta = mainRow.querySelector('.course-meta');
+                      if (meta) {
+                        const span = document.createElement('span');
+                        span.className = 'meta-item';
+                        const text =
+                          hasTheory && hasLab ? 'Teoría + laboratorio' :
+                            hasTheory ? 'Solo teoría' :
+                              hasLab ? 'Solo laboratorio' :
+                                `${rows.length} sesiones`;
+                        span.innerHTML = `<span>Componentes:</span> <strong>${text}</strong>`;
+                        meta.appendChild(span);
+                      }
+
+                      others.forEach(r => {
+                        r.classList.add('course-hidden-segment');
+                        const idxStr = r.id && r.id.split('-')[1];
+                        if (idxStr) {
+                          const chgEl = document.getElementById('chg-' + idxStr);
+                          if (chgEl) chgEl.style.display = 'none';
+                        }
+                      });
+                    });
+                  })();
+
+                  document.querySelectorAll('.course').forEach((row, idx) => {
+                    originals[row.id] = readCurrent(row);
+                    const details = row.querySelector('.repl');
+                    const container = row.querySelector('#opts-' + idx);
+                    if (!details || !container) return;
+
+                    details.addEventListener('toggle', async () => {
+                      if (!details.open) return;
+                      if (container.dataset.loaded === '1') return;
+
+                      const base = originals[row.id] || readCurrent(row);
+                      const courseCode = row.getAttribute('data-code') || base.code;
+                      const period = row.getAttribute('data-period') || '';
+                      const originalModality = normalizeModalityDisplay(base.modality || '');
+                      const currentGroupKey = norm(getGroup(row));
+
+                      container.innerHTML = '<div class="option"><em>Configurando…</em></div>';
+
+                      try {
+                        const json = await fetch('/available', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ period, courseCode })
+                        }).then(r => r.json());
+
+                        let opts = (json.data || []).filter(o => norm(o.courseCode) === norm(courseCode));
+
+                        opts = opts.filter(o => norm(o.groupCode || o.section || o.courseGroup || '') !== currentGroupKey);
+
+                        if (!opts.length) {
+                          container.innerHTML = '<div class="option muted">No hay turnos de reemplazo para este curso.</div>';
+                          container.dataset.loaded = '1';
+                          return;
+                        }
+                        opts = opts.filter(o => {
+                          const a = Number(o.vacancies_left);
+                          return !Number.isFinite(a) || a > 0; // keep unknown OR available > 0
+                        });
+
+                        const currentPlan = buildPlanWithoutCourse(courseCode);
+                        const blocks = [];
+
+                        // iterate available options for this course
+                        opts.forEach(function (o) {
+                          // normalized group label used in UI and payload
+                          const groupCodeStr = o.groupCode || o.section || o.courseGroup || o.group || '';
+
+                          // check if this option conflicts with the current plan (excluding this course)
+                          const conflictWith = getGroupConflict(currentPlan, o);
+
+                          const availableVal =
+                            (o.vacancies_left ?? null);
+
+                          // fallback (just in case backend didn't send it)
+                          let computedAvailable = null;
+                          if (availableVal === null || availableVal === undefined) {
+                            const v = Number(o.total_vacations);
+                            const e = Number(o.number_enrolled);
+                            if (Number.isFinite(v) && Number.isFinite(e)) computedAvailable = Math.max(0, v - e);
+                          }
+
+                          const availableFinal =
+                            (availableVal !== null && availableVal !== undefined) ? availableVal : computedAvailable;
+
+                          const availableText = fmtNum(availableFinal);
+
+                          // ✅ Full if available is 0 (only when we know the number)
+                          const aNum = Number(availableFinal);
+                          const hasAvail = Number.isFinite(aNum);
+                          const isFull = hasAvail ? (aNum <= 0) : false;
+
+                          const payload = safeJson({
+                            courseCode,
+                            groupCode: groupCodeStr,
+                            sessions: Array.isArray(o.sessions) ? o.sessions : []
+                          });
+
+                          const btnDisabled = !!conflictWith || isFull;
+
+                          const btnAttrs = btnDisabled
+                            ? 'class="option-btn" disabled'
+                            : `class="option-btn" onclick='previewReplace(${idx}, ${payload})'`;
+
+                          const btnLabel = conflictWith
+                            ? 'Horario en conflicto'
+                            : isFull
+                              ? 'Turno lleno'
+                              : 'Usar este turno completo';
+
+                          const sessionsHtml = (Array.isArray(o.sessions) ? o.sessions : []).map(s => {
+                            const mod = normalizeModalityDisplay(s.modality || s.modalityNorm || '');
+                            const day = canonicalDay(s.dayName || s.day || '—');
+                            const time = normalizeTime(s.time || `${s.start || ''}-${s.end || ''}`);
+                            return `
+    <div class="field">
+      <span class="label">${escapeHtml(mod)}</span>
+      <span class="value">${escapeHtml(day)} &nbsp; ${escapeHtml(time)}</span>
+    </div>`;
+                          }).join('');
+
+                          blocks.push(`
+  <div class="option">
+    <div class="option-code">${escapeHtml(courseCode || "—")}</div>
+
+    <div class="option-fields">
+      <div class="field">
+        <span class="label">Grupo</span>
+        <span class="value">${escapeHtml(groupCodeStr || "—")}</span>
+      </div>
+
+      <div class="field">
+        <span class="label">Disponibles</span>
+        <span class="value">${escapeHtml(availableText)}</span>
+      </div>
+
+
+      ${sessionsHtml}
+    </div>
+
+    <div class="option-cta">
+      <button ${btnAttrs}>${btnLabel}</button>
+      ${conflictWith ? `<div class="conflict-note">Choca con ${escapeHtml(conflictWith.code)}</div>` : ``}
+    </div>
+  </div>
+`);
+                        }); // end opts.forEach
+
+                        container.innerHTML = blocks.join('');
+                        container.dataset.loaded = '1';
+                      } catch (e) {
+                        console.error(e);
+                        container.innerHTML = '<div class="option">Error cargando opciones.</div>';
+                      }
+                    });
+                  });
+
+                  window.getGroup = function (row) {
+                    const meta = row.querySelectorAll('.course-meta .meta-item strong');
+                    return meta && meta[1] ? (meta[1].textContent || '').trim() : '';
+                  };
+
+                  window.previewReplace = function (rowIndex, opt) {
+                    // If user starts changing manually after using IA, ignore the previous IA plan
+                    serverFinalPlan = null;
+                    const row = document.getElementById('c-' + rowIndex);
+                    if (!row) return;
+
+                    const courseCode = opt.courseCode ||
+                      row.getAttribute('data-code') ||
+                      (originals[row.id] || readCurrent(row)).code;
+
+                    const sessions = Array.isArray(opt.sessions) ? opt.sessions : [];
+                    if (!sessions.length) return;
+
+                    const plan = buildPlanWithoutCourse(courseCode);
+                    for (const s of sessions) {
+                      const day = canonicalDay(s.day || s.dayName || "—");
+                      const time = normalizeTime(
+                        s.time || `${s.start || s.hourStart || ''}-${s.end || s.hourEnd || ''}`
+                      );
+                      const conflict = getConflict(plan, day, time);
+                      if (conflict) {
+                        alert(`Ese turno completo choca con ${conflict.code}. Selecciona otro turno de ese curso.`);
+                        return;
+                      }
+                    }
+
+                    const courseRows = Array.from(document.querySelectorAll('.course'))
+                      .filter(r => norm(r.getAttribute('data-code') || '') === norm(courseCode));
+
+                    courseRows.forEach(r => {
+                      const rowId = r.id;
+                      const original = originals[rowId] || readCurrent(r);
+                      const origType = classifyModType(original.modality);
+
+                      let seg = sessions.find(s => classifyModType(s.modality || s.modalityNorm) === origType) || sessions[0];
+
+                      const idxStr = rowId.split('-')[1];
+                      const idxNum = Number(idxStr);
+
+                      const after = {
+                        code: original.code,
+                        name: r.getAttribute('data-name') || original.name,
+                        group: opt.groupCode || original.group,
+                        day: canonicalDay(seg.day || seg.dayName || original.day),
+                        time: normalizeTime(
+                          seg.time ||
+                          `${seg.start || seg.hourStart || ''}-${seg.end || seg.hourEnd || ''}` ||
+                          original.time
+                        ),
+                        modality: normalizeModalityDisplay(seg.modality || original.modality)
+                      };
+
+                      changes[rowId] = after;
+                      renderChange(
+                        idxNum,
+                        { group: original.group, day: original.day, time: original.time, modality: original.modality },
+                        after
+                      );
+                      markCourseChanged(rowId, true);   // NEW: visually mark as changed
+                    });
+
+                    hasNewTimetable = true;
+                    if (ttToggleNew) {
+                      ttToggleNew.disabled = false;
+                      ttToggleNew.classList.remove('tt-tab-disabled');
+                    }
+
+                    document.querySelectorAll('.repl[open]').forEach(d => d.open = false);
+                  };
+
+                  function applyServerPlan(data) {
+                    const changeList = Array.isArray(data.changes) ? data.changes : [];
+                    clearAllChangesUI();
+                    // store full IA schedule (session-level) for drawing "Horario nuevo"
+                    serverFinalPlan = Array.isArray(data.finalCourses) ? data.finalCourses : null;
+
+                    refreshTimetableIfOpen();
+
+                    const rowsByCode = {};
+                    document.querySelectorAll('.course').forEach(row => {
+                      const base = originals[row.id] || readCurrent(row);
+                      const code = row.getAttribute('data-code') || base.code;
+                      if (!rowsByCode[code]) rowsByCode[code] = [];
+                      rowsByCode[code].push(row);
+                    });
+
+                    changeList.forEach(ch => {
+                      const rows = rowsByCode[ch.code] || [];
+                      rows.forEach(row => {
+                        const base = originals[row.id] || readCurrent(row);
+                        const idxStr = (row.id || '').split('-')[1];
+                        const idxNum = Number(idxStr);
+
+                        const after = {
+                          code: base.code,
+                          name: base.name,
+                          group: ch.to?.group || base.group,
+                          day: ch.to?.day || base.day,
+                          time: ch.to?.time || base.time,
+                          modality: ch.to?.modality || base.modality
+                        };
+
+                        changes[row.id] = after;
+                        renderChange(
+                          idxNum,
+                          { group: base.group, day: base.day, time: base.time, modality: base.modality },
+                          after
+                        );
+
+                        // NEW: visually mark this course as changed
+                        markCourseChanged(row.id, true);
+                      });
+                    });
+
+                    hasNewTimetable = (changeList.length > 0) || (serverFinalPlan && serverFinalPlan.length > 0);
+
+                    if (ttToggleNew) {
+                      ttToggleNew.disabled = !hasNewTimetable;
+                      ttToggleNew.classList.toggle('tt-tab-disabled', !hasNewTimetable);
+                    }
+
+                  }
+
+                  function buildOriginalEntries() {
+                    const entries = [];
+                    document.querySelectorAll('.course').forEach(row => {
+                      const base = originals[row.id] || readCurrent(row);
+                      const code = row.getAttribute('data-code') || base.code;
+                      const name = row.getAttribute('data-name') || base.name;
+                      const day = canonicalDay(base.day || '—');
+                      const time = normalizeTime(base.time || '—');
+                      const group = base.group || '—';
+                      const mod = normalizeModalityDisplay(base.modality || '—');
+                      entries.push({ code, name, day, time, group, modality: mod });
+                    });
+                    return entries;
+                  }
+
+                  function buildFinalEntries() {
+                    const entries = [];
+                    document.querySelectorAll('.course').forEach(row => {
+                      const base = originals[row.id] || readCurrent(row);
+                      const sel = changes[row.id];
+                      const code = row.getAttribute('data-code') || base.code;
+                      const name = row.getAttribute('data-name') || base.name;
+                      const day = canonicalDay((sel?.day || base.day || '—'));
+                      const time = normalizeTime(sel?.time || base.time || '—');
+                      const group = sel?.group || base.group || '—';
+                      const mod = normalizeModalityDisplay(sel?.modality || base.modality || '—');
+                      entries.push({ code, name, day, time, group, modality: mod });
+                    });
+                    return entries;
+                  }
+
+                  function findConflicts(entries) {
+                    const byDay = {};
+                    entries.forEach(e => {
+                      const r = parseRange(e.time);
+                      if (!r) return;
+                      const key = sameDayKey(e.day);
+                      byDay[key] = byDay[key] || [];
+                      byDay[key].push({ code: e.code, start: r.start, end: r.end, time: e.time });
+                    });
+                    const problems = [];
+                    Object.values(byDay).forEach(list => {
+                      list.sort((a, b) => a.start - b.start);
+                      for (let i = 0; i < list.length - 1; i++) {
+                        const A = list[i], B = list[i + 1];
+                        if (overlap(A, B)) problems.push([A, B]);
+                      }
+                    });
+                    return problems;
+                  }
+
+                  function shortMod(mod) {
+                    const t = (mod || '').toUpperCase();
+                    if (t.includes('LAB')) return 'L';
+                    if (t.includes('VIRT')) return 'V';
+                    if (t.includes('PRE') || t.includes('TEORÍA PRESENCIAL') || t.includes('TEORIA PRESENCIAL')) return 'P';
+                    return (t[0] || '—');
+                  }
+
+                  function removeTrueDuplicates(entries) {
+                    const seen = new Set();
+                    return entries.filter(e => {
+                      const r = parseRange(e.time);
+                      const key = [
+                        norm(e.code), norm(e.group || ''), sameDayKey(e.day),
+                        r ? r.start : e.time, r ? r.end : '', norm(e.modality || '')
+                      ].join('|');
+                      if (seen.has(key)) return false;
+                      seen.add(key);
+                      return true;
+                    });
+                  }
+
+                  function renderTimetableStacked(entries, containerId, changedCodesSet, variant) {
+                    const DAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+                    const container = document.getElementById(containerId);
+                    if (!container) return;
+
+                    const head = `<div class="tt-head">${DAYS.map(d => `<div class="cell">${d}</div>`).join('')}</div>`;
+                    const grid = `<div class="tt-grid">${DAYS.map(d => `<div class="tt-col" data-day="${d}"></div>`).join('')}</div>`;
+                    const legend = `
+    <div class="tt-legend">
+      <span><span class="dot"></span>Curso</span>
+      <span class="chip">P Presencial Teoría</span>
+      <span class="chip">V Virtual Teoría</span>
+      <span class="chip">L Laboratorio Presencial</span>
+      <span class="chip">Rojo = cambiado (original)</span>
+      <span class="chip">Verde = cambiado (nuevo)</span>
+    </div>`;
+
+                    container.innerHTML = `<div class="tt-board">${head}${grid}${legend}</div>`;
+
+                    const toStart = (t) => {
+                      const m = /(\d{1,2}):(\d{2}).*?(\d{1,2}):(\d{2})/.exec(String(t || ''));
+                      return m ? (+m[1]) * 60 + (+m[2]) : 24 * 60;
+                    };
+
+                    const byDay = Object.fromEntries(DAYS.map(d => [d, []]));
+                    entries.forEach(e => { const d = (e.day || ''); if (byDay[d]) byDay[d].push(e); });
+                    DAYS.forEach(d => byDay[d].sort((a, b) => toStart(a.time) - toStart(b.time)));
+
+                    const gridEl = container.querySelector('.tt-grid');
+
+                    DAYS.forEach(d => {
+                      const col = gridEl.querySelector(`.tt-col[data-day="${d}"]`);
+                      byDay[d].forEach(e => {
+                        const isChanged = !!changedCodesSet && changedCodesSet.has(norm(e.code));
+                        const extraClass =
+                          isChanged
+                            ? (variant === 'old' ? ' card-mini--old' : (variant === 'new' ? ' card-mini--new' : ''))
+                            : '';
+
+                        const card = document.createElement('div');
+                        card.className = 'card-mini' + extraClass;
+
+                        card.innerHTML = `
+        <span class="code">${escapeHtml(e.code)}</span>
+        <div class="name">${escapeHtml(e.name || '')}</div>
+        <div class="meta">
+          <span class="chip">${escapeHtml(e.time || 'No asignada')}</span>
+          <span class="chip">Gr. ${escapeHtml(e.group || '—')}</span>
+          <span class="chip mod">${escapeHtml(shortMod(e.modality || ''))}</span>
+        </div>`;
+                        col.appendChild(card);
+                      });
+                    });
+                  }
+
+
+                  let lastOriginalCount = 0;
+                  let lastNewCount = 0;
+
+                  function lockToggleToOriginal() {
+                    const tabOrig = document.getElementById('ttTabOriginal');
+                    const tabNew = document.getElementById('ttTabNew');
+                    if (!tabOrig || !tabNew) return;
+
+                    setTimetableMode('original');
+                    tabNew.disabled = true;
+                    tabNew.classList.add('tt-tab-disabled');
+                  }
+
+                  function unlockToggle() {
+                    const tabNew = document.getElementById('ttTabNew');
+                    if (!tabNew) return;
+                    tabNew.disabled = false;
+                    tabNew.classList.remove('tt-tab-disabled');
+                  }
+
+                  function refreshTimetableIfOpen() {
+                    const panel = document.getElementById('timetablePanel');
+                    if (panel && !panel.classList.contains('hidden')) {
+                      document.getElementById('seeTimetableBtn')?.click();
+                    }
+                  }
+
+                  function setTimetableMode(mode) {
+                    // ✅ stacked view: never hide any grid
+                    const orig = document.getElementById('ttGridOriginal');
+                    const neu = document.getElementById('ttGridNew');
+                    orig?.classList.remove('hidden');
+                    neu?.classList.remove('hidden');
+
+                    // (optional) keep tab highlight if you still show tabs
+                    const isOriginal = (mode === 'original');
+                    const tabOrig = document.getElementById('ttTabOriginal');
+                    const tabNew = document.getElementById('ttTabNew');
+                    if (tabOrig && tabNew) {
+                      tabOrig.classList.toggle('tt-tab-active', isOriginal);
+                      tabNew.classList.toggle('tt-tab-active', !isOriginal);
+                    }
+
+                    // (optional) if you still use this span
+                    const countSpan = document.getElementById('courseCount');
+                    if (countSpan) {
+                      countSpan.textContent = String(lastNewCount); // or keep original logic if you want
+                    }
+                  }
+                  const seeBtn = document.getElementById('seeTimetableBtn');
+
+                  if (seeBtn) {
+                    seeBtn.addEventListener('click', () => {
+                      // 1) Build entries
+                      const originalEntries = removeTrueDuplicates(buildOriginalEntries());
+
+                      let newEntries;
+                      const hasServerFinal = Array.isArray(serverFinalPlan) && serverFinalPlan.length > 0;
+
+                      if (hasServerFinal) {
+                        newEntries = serverFinalPlan.map(e => ({
+                          code: e.code || e.courseCode || '',
+                          name: e.name || e.courseName || '',
+                          day: canonicalDay(e.day || ''),
+                          time: normalizeTime(e.time || e.hour || ''),
+                          group: e.group || e.groupCode || e.section || '—',
+                          modality: normalizeModalityDisplay(e.modality || '')
+                        }));
+                        newEntries = removeTrueDuplicates(newEntries);
+                      } else {
+                        newEntries = removeTrueDuplicates(buildFinalEntries());
+                      }
+
+                      // 2) Highlight changed codes
+                      const changedCodes = getChangedCodesSet();
+                      const hasChanges = changedCodes.size > 0 || hasServerFinal;
+
+                      // 3) Counts
+                      const cO = document.getElementById('courseCountOriginal');
+                      const cN = document.getElementById('courseCountNew');
+                      if (cO) cO.textContent = String(originalEntries.length);
+
+                      // 4) Render original
+                      renderTimetableStacked(originalEntries, 'ttGridOriginal', changedCodes, 'old');
+
+                      // 5) Render new (or show message)
+                      if (hasChanges) {
+                        renderTimetableStacked(newEntries, 'ttGridNew', changedCodes, 'new');
+                        if (cN) cN.textContent = String(newEntries.length);
+                      } else {
+                        const gridNew = document.getElementById('ttGridNew');
+                        if (gridNew) gridNew.innerHTML = `<p class="muted" style="margin:8px 6px;">Aún no hay cambios para mostrar.</p>`;
+                        if (cN) cN.textContent = "0";
+                      }
+
+                      // 6) Open panel
+                      const panel = document.getElementById('timetablePanel');
+                      if (panel) {
+                        panel.classList.remove('hidden');
+                        panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      }
+                    });
+                  }
+
+
+
+                  // "Restablecer horario original" button
+                  const resetBtn = document.getElementById('resetScheduleBtn');
+                  if (resetBtn) {
+                    resetBtn.addEventListener('click', () => {
+                      const ok = confirm(
+                        '¿Quieres restablecer tu horario original?\n' +
+                        'Se perderán todos los cambios que hayas hecho.'
+                      );
+                      if (!ok) return;
+
+                      // 1) Clear all changes + lock toggle + remove highlights
+                      resetChanges();
+                      hideBlockedPopup();
+
+
+                      // 2) If timetable is visible, re-render ONLY the original timetable
+                      const panel = document.getElementById('timetablePanel');
+                      if (panel && !panel.classList.contains('hidden')) {
+                        const originalEntries = removeTrueDuplicates(buildOriginalEntries());
+                        lastOriginalCount = originalEntries.length;
+
+                        renderTimetableStacked(originalEntries, 'ttGridOriginal');
+
+                        const gridNew = document.getElementById('ttGridNew');
+                        if (gridNew) {
+                          gridNew.classList.remove('hidden');
+                          gridNew.innerHTML = `<p class="muted" style="margin:8px 6px;">Aún no hay cambios para mostrar.</p>`;
+                        }
+
+                        const cN = document.getElementById('courseCountNew');
+                        if (cN) cN.textContent = "0";
+
+                        document.getElementById('ttGridOriginal')?.classList.remove('hidden');
+                        document.getElementById('ttGridNew')?.classList.remove('hidden');
+
+                      }
+
+                      alert('Se restableció tu horario original.');
+                    });
+                  }
+
+
+                  document.getElementById('ttTabOriginal')?.addEventListener('click', () => {
+                    setTimetableMode('original');
+                  });
+                  document.getElementById('ttTabNew')?.addEventListener('click', () => {
+                    setTimetableMode('new');
+                  });
+
+                  document.getElementById('closeTimetable')?.addEventListener('click', () => {
+                    document.getElementById('timetablePanel')?.classList.add('hidden');
+                  });
+
+                  const confirmBtn = document.getElementById('confirmBtn');
+                  const confirmModal = document.getElementById('confirmModal');
+                  const confirmClose = document.getElementById('confirmClose');
+                  const confirmCancel = document.getElementById('confirmCancel');
+                  const confirmSendBtn = document.getElementById('confirmSend');
+                  function openConfirmModal() { confirmModal.classList.add('active'); }
+                  function closeConfirmModal() { confirmModal.classList.remove('active'); }
+                  if (confirmBtn) confirmBtn.addEventListener('click', (e) => { e.preventDefault(); openConfirmModal(); });
+                  if (confirmClose) confirmClose.addEventListener('click', closeConfirmModal);
+                  if (confirmCancel) confirmCancel.addEventListener('click', closeConfirmModal);
+                  if (confirmModal) {
+                    confirmModal.addEventListener('click', (e) => { if (e.target === confirmModal) closeConfirmModal(); });
+                    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeConfirmModal(); });
+                  }
+
+                  function setAfterConfirmMode() {
+                    // Hide everything the student should NOT see anymore
+                    document.getElementById('afterConfirmNotice')?.classList.remove('hidden');
+                    document.getElementById('aiControlsBox')?.classList.add('hidden');
+                    document.getElementById('coursesBox')?.classList.add('hidden');
+                    document.getElementById('actionButtonsBox')?.classList.add('hidden');
+                    document.getElementById('helpPanel')?.classList.add('hidden');
+
+                    // Show timetable panel
+                    const panel = document.getElementById('timetablePanel');
+                    panel?.classList.remove('hidden');
+
+                    // Show ONLY "Horario nuevo"
+                    document.getElementById('ttSectionOriginal')?.classList.add('hidden');
+                    document.getElementById('ttSectionNew')?.classList.remove('hidden');
+
+                    // Build the final "new timetable" entries
+                    const hasServerFinal = Array.isArray(serverFinalPlan) && serverFinalPlan.length > 0;
+
+                    let newEntries = hasServerFinal
+                      ? serverFinalPlan.map(e => ({
+                        code: e.code || e.courseCode || '',
+                        name: e.name || e.courseName || '',
+                        day: canonicalDay(e.day || ''),
+                        time: normalizeTime(e.time || e.hour || ''),
+                        group: e.group || e.groupCode || e.section || '—',
+                        modality: normalizeModalityDisplay(e.modality || '')
+                      }))
+                      : buildFinalEntries();
+
+                    newEntries = removeTrueDuplicates(newEntries);
+
+                    // Render only the NEW grid
+                    const changedCodes = getChangedCodesSet();
+                    renderTimetableStacked(newEntries, 'ttGridNew', changedCodes, 'new');
+
+                    // Update count
+                    const cN = document.getElementById('courseCountNew');
+                    if (cN) cN.textContent = String(newEntries.length);
+
+                    // Clear original grid content (optional)
+                    const gridOrig = document.getElementById('ttGridOriginal');
+                    if (gridOrig) gridOrig.innerHTML = '';
+
+                    panel?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }
+
+                  if (confirmSendBtn) {
+                    confirmSendBtn.addEventListener('click', async () => {
+
+                      try {
+                        confirmSendBtn.disabled = true;
+
+                        const finalCourses = removeTrueDuplicates(buildFinalEntries());
+                        const problems = findConflicts(finalCourses);
+                        if (problems.length) {
+                          const lines = problems
+                            .map(([a, b]) => `• ${a.code} (${formatMins(a.start)}–${formatMins(a.end)}) con ${b.code} (${formatMins(b.start)}–${formatMins(b.end)})`)
+                            .join('\n');
+                          alert('Hay conflictos de horario. Cambia uno de los horarios:\n\n' + lines);
+                          confirmSendBtn.disabled = false;
+                          return;
+                        }
+
+                        // ✅ Close modal first so loader is visible
+                        closeConfirmModal();
+
+                        // ✅ Show global loader (with blur)
+                        if (window.showLoader) window.showLoader('Generando PDF...');
+
+                        const changesArr = [];
+                        document.querySelectorAll('.course').forEach(row => {
+                          const base = originals[row.id] || readCurrent(row);
+                          const sel = changes[row.id];
+                          if (sel) {
+                            changesArr.push({
+                              code: row.getAttribute('data-code') || base.code,
+                              name: row.getAttribute('data-name') || base.name,
+                              from: { group: base.group, day: base.day, time: base.time, modality: base.modality },
+                              to: { group: sel.group, day: sel.day, time: sel.time, modality: sel.modality }
+                            });
+                          }
+                        });
+
+                        const student = {
+                          name: '<%= (_firstName + " " + _lastName) %>',
+                          code: '<%= _studentId %>',
+                          dni: '<%= _dni %>',
+                          facultyName: '<%= _facultyName %>',
+                          specialtyName: '<%= _specialtyName %>',
+                          period: '<%= _semester %>',
+                          mode: '<%= _mode %>',
+                          email: '<%= _email %>',
+                          phone: '<%= _phone %>'
+                        };
+
+                        const resp = await fetch('/confirm', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ student, changes: changesArr, finalCourses })
+                        });
+                        if (!resp.ok) throw new Error('PDF generation failed');
+
+                        const blob = await resp.blob();
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `rectification_${student.code}.pdf`;
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                        URL.revokeObjectURL(url);
+
+                        // ✅ Switch to final “sent” view
+                        setAfterConfirmMode();
+
+                      } catch (e) {
+                        console.error(e);
+                        alert('No se pudo generar el PDF.');
+                        if (window.hideLoader) window.hideLoader();
+                      } finally {
+                        confirmSendBtn.disabled = false;
+                        if (window.hideLoader) window.hideLoader(); // Ensure it closes on success too, or keep it open if that's desired (user said "when t is done the normal end screen"). The navigation to "setAfterConfirmMode" happens on success. Usually we hide loader there or here. 
+                        // But wait, setAfterConfirmMode just changes DOM, doesn't reload. So we MUST hide loader.
+                      }
+                    });
+                  }
+
+
+                  function formatMins(m) { const h = Math.floor(m / 60), mm = String(m % 60).padStart(2, '0'); return `${h}:${mm}`; }
+                  function fmtNum(v) {
+                    if (v === null || v === undefined || v === '') return '—';
+                    const n = Number(v);
+                    return Number.isFinite(n) ? String(n) : '—';
+                  }
+                });
+                function escapeHtml(s) { return String(s || '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+                function safeJson(o) { return JSON.stringify(o).replace(/</g, '\\u003c'); }
+
+              </script>
+
+
+              <ul id="aiBlockedList" class="ai-blocked-list"></ul>
+      </div>
+      </div>
+      <div id="aiBlockedModal" class="uma-modal-backdrop" aria-hidden="true">
+        <div class="uma-modal">
+          <div class="uma-modal-head">
+            <h3>Algunos cursos no se pudieron cambiar</h3>
+            <button id="aiBlockedClose" class="uma-x">✕</button>
+          </div>
+
+          <p class="uma-modal-sub">
+            Estos cursos se quedaron igual por conflicto de horario o porque los turnos alternativos están llenos.
+          </p>
+
+          <ul id="aiBlockedList" class="ai-blocked-list"></ul>
+        </div>
+      </div>
+
+
+</body>
+
+</html>

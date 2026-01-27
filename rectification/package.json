@@ -1,0 +1,25 @@
+{
+  "name": "uma-rectification-portal",
+  "version": "1.0.0",
+  "description": "Subject Rectification Portal (EJS/Express)",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "nodemon app.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.90.1",
+    "axios": "^1.7.7",
+    "body-parser": "^1.20.2",
+    "dotenv": "^16.6.1",
+    "ejs": "^3.1.10",
+    "express": "^4.19.2",
+    "express-session": "^1.18.2",
+    "nodemailer": "^7.0.5",
+    "pdfkit": "^0.17.1",
+    "resend": "^6.1.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.4"
+  }
+}
