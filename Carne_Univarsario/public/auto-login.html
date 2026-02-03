@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>UMA — Conectando...</title>
+    <style>
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #fff5f7 0%, #ffe6ee 100%);
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+        }
+    </style>
+</head>
+
+<body>
+    <script src="js/loader.js"></script>
+    <script>
+        (async function () {
+            // Show loader immediately
+            if (window.showLoader) window.showLoader('Conectando al Portal del Estudiante...');
+
+            const params = new URLSearchParams(location.search);
+            const code = params.get('code') || params.get('codigo');
+            const dni = params.get('dni');
+
+            if (!code || !dni) {
+                alert('Credenciales no proporcionadas');
+                location.replace('index.html');
+                return;
+            }
+
+            try {
+                // Call the API to verify and authenticate
+                const response = await fetch('/api/student/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ codigo: String(code), dni: String(dni) })
+                });
+
+                const data = await response.json();
+
+                if (!data.ok) {
+                    throw new Error(data.error?.message || JSON.stringify(data.error) || 'No autorizado');
+                }
+
+                // Set localStorage tokens (same as original login)
+                localStorage.setItem('uma_token_student', '1');
+                localStorage.setItem('uma_codigo', String(code));
+                localStorage.setItem('codigo', String(code));
+                localStorage.setItem('uma_student_code', String(code));
+                localStorage.setItem('student_code', String(code));
+                localStorage.setItem('uma_session_role', 'student');
+                localStorage.setItem('uma_session_email', `${code}@uma.edu.pe`);
+
+                // Redirect to student page
+                location.replace('student.html?code=' + encodeURIComponent(code));
+
+            } catch (err) {
+                console.error('Auto-login failed:', err);
+                alert('Error de autenticación: ' + (err.message || 'Error desconocido'));
+                location.replace('index.html');
+            }
+        })();
+    </script>
+</body>
+
+</html>

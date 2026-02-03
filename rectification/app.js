@@ -10,6 +10,8 @@ const fs = require("fs");
 const crypto = require("crypto");
 const { addRectification, addLoginAudit, PDF_DIR } = require("./utils/adminStore");
 const { createClient } = require("@supabase/supabase-js");
+const RedisStore = require("connect-redis").default;
+const { createClient: createRedisClient } = require("redis");
 
 const supabase = createClient(
   process.env.RECT_SUPABASE_URL || process.env.SUPABASE_URL,
@@ -29,6 +31,7 @@ try {
 }
 
 const app = express();
+
 const PORT = process.env.PORT || 5000;
 
 // Base URLs and credentials
@@ -39,6 +42,12 @@ const ADMIN_PASS = process.env.ADMIN_PASS;
 const AI_BASE_URL = process.env.AI_BASE_URL || "http://127.0.0.1:5055";
 // ✅ Current period (latest)
 const CURRENT_PERIOD_ID = String(process.env.CURRENT_PERIOD_ID || "20261").replace(/[^0-9]/g, "");
+
+const PUBLIC_BASE = (process.env.PUBLIC_BASE || "/rectificacion").replace(/\/+$/, "");
+app.locals.PUBLIC_BASE = PUBLIC_BASE;
+app.set("trust proxy", 1);
+
+const PUBLIC_HOME = (PUBLIC_BASE ? PUBLIC_BASE : "") + "/";
 
 
 // Logo path (for PDF)
@@ -52,7 +61,6 @@ const BOLETA_URL =
 app.disable("x-powered-by");
 app.set("views", path.join(__dirname, "views"));
 app.set("view engine", "ejs");
-app.set("trust proxy", 1);
 // ✅ Global defaults for EJS variables (prevents "done is not defined")
 app.use((req, res, next) => {
   res.locals.done = false;
@@ -68,16 +76,26 @@ app.use(express.static(path.join(__dirname, "public")));
 
 app.use(
   session({
-    name: "rectification.sid",
-    secret: process.env.SESSION_SECRET || "uma-secret",
+    store: new RedisStore({ client: redisClient }),
+    name: process.env.SESSION_COOKIE_NAME || "uma.sid",
+    secret: process.env.SESSION_SECRET || "change-this-secret",
     resave: false,
     saveUninitialized: false,
     cookie: {
+      httpOnly: true,
       sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
+      secure: false, // http://
+      path: "/",     // IMPORTANT for SSO
+      maxAge: 1000 * 60 * 60 * 6,
     },
   })
 );
+
+function requirePortalLogin(req, res, next) {
+  if (req.session?.user) return next();
+  return res.redirect("/"); // send to dashboard
+}
+
 const adminRoutes = require("./routes/admin");
 // Status check API for Dashboard
 app.get("/api/status/:code", async (req, res) => {
@@ -112,6 +130,11 @@ app.get("/api/status/:code", async (req, res) => {
 
 app.use("/admin", adminRoutes);
 
+const RedisStore = require("connect-redis").default;
+const { createClient } = require("redis");
+
+const redisClient = createClient({ url: process.env.REDIS_URL });
+redisClient.connect().catch(console.error);
 
 
 // Mail transport (no-reply)
@@ -195,6 +218,13 @@ async function upsertPortalState({ period_id, student_code, boleta_number, dni_l
 
   if (error) throw error;
 }
+
+function isJsonRequest(req) {
+  const ct = (req.headers["content-type"] || "").toLowerCase();
+  const accept = (req.headers["accept"] || "").toLowerCase();
+  return ct.includes("application/json") || accept.includes("application/json");
+}
+
 
 function getClientIp(req) {
   const xff = req.headers["x-forwarded-for"];
@@ -875,7 +905,7 @@ async function requireVerifiedStudent(req, res, next) {
 
   // Not logged in
   if (!s || !profile) {
-    if (req.accepts("html")) return res.redirect("/");
+    if (req.accepts("html")) return res.redirect(PUBLIC_HOME);
     return res.status(401).json({ error: "not_logged_in" });
   }
 
@@ -915,6 +945,15 @@ app.get("/", (req, res) => {
     const s = req.session.student;
     const p = req.session.profile;
     const enrolled = req.session.enrolled || [];
+
+    if (wantsJson) {
+      return res.status(401).json({
+        ok: false,
+        error: "login_failed",
+        message: "Error al iniciar sesión u obtener datos. Revisa tus credenciales.",
+      });
+    }
+
 
     return res.render("index", {
       firstName: req.session.firstName,
@@ -974,6 +1013,9 @@ app.post("/login", async (req, res) => {
 
   const codigo = req.body.codigo;
   const dni = req.body.dni;
+
+  const wantsJson = (req.headers.accept || "").includes("application/json");
+
 
   try {
     // 1) Student login
@@ -1202,7 +1244,9 @@ app.post("/login", async (req, res) => {
 
     // ✅ If ok, go directly to portal (index)
     // Redirect to GET / to avoid form resubmission on Back button
-    return res.redirect("/");
+    if (wantsJson) return res.json({ ok: true, redirect: "/rectificacion/" });
+return res.redirect("/rectificacion/");
+
 
   } catch (err) {
     try {
@@ -1223,7 +1267,20 @@ app.post("/login", async (req, res) => {
       err.response ? err.response.data : err.message
 
     );
-    return res.render("index", {
+// If this request came from fetch/XHR (expects JSON), return JSON not HTML
+const wantsJson =
+  String(req.headers["content-type"] || "").toLowerCase().includes("application/json") ||
+  String(req.headers["accept"] || "").toLowerCase().includes("application/json");
+
+if (wantsJson) {
+  return res.status(401).json({
+    ok: false,
+    error: "LOGIN_FAILED",
+    message: "Error al iniciar sesión u obtener datos. Revisa tus credenciales."
+  });
+}
+    
+return res.render("index", {
       firstName: null,
       lastName: null,
       studentId: null,
@@ -1250,7 +1307,9 @@ app.post("/login", async (req, res) => {
 
 /* ------------ verify boleta after login ------------ */
 app.post("/verify-boleta", (req, res) => {
-  return res.redirect("/"); // not used anymore
+  if (wantsJson) return res.json({ ok: true, redirect: PUBLIC_HOME });
+return res.redirect(PUBLIC_HOME);
+
 });
 
 
@@ -2325,7 +2384,7 @@ app.post("/logout", (req, res) => {
     res.set('Pragma', 'no-cache');
     res.set('Expires', '0');
     // Use 303 to convert POST to GET and redirect to dashboard with marker
-    res.redirect(303, "http://localhost:3002?from=rectification");
+    res.redirect(303, "/?from=rectification");
   });
 });
 
