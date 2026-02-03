@@ -51,6 +51,8 @@ const btnLogout = document.getElementById('btn-logout');
 // Safer JSON parse
 const ct = response.headers.get('content-type') || '';
 if (!ct.includes('application/json')) throw new Error('Respuesta no JSON');
+const ct = response.headers.get('content-type') || '';
+if (!ct.includes('application/json')) throw new Error('Respuesta no JSON');
 const data = await response.json();
 
             if (data.ok && data.student) {
@@ -100,7 +102,10 @@ loginForm.addEventListener('submit', async (e) => {
 // Safer JSON parse
 const ct = response.headers.get('content-type') || '';
 if (!ct.includes('application/json')) throw new Error('Respuesta no JSON');
+const ct = response.headers.get('content-type') || '';
+if (!ct.includes('application/json')) throw new Error('Respuesta no JSON');
 const data = await response.json();
+
 
         if (!data.ok) {
             throw new Error(data.error || 'Credenciales inválidas');
@@ -297,8 +302,13 @@ function renderDashboard(student) {
 
 async function checkRectificationStatus(code) {
     try {
-        const res = await fetch(`/services/rectification/api/status/${code}`);
-        const data = await res.json();
+        const res = await fetch(`/services/rectification/api/status/${code}`, {
+    headers: { 'Accept': 'application/json' }
+});
+const ct = res.headers.get('content-type') || '';
+if (!ct.includes('application/json')) throw new Error('Respuesta no JSON');
+const data = await res.json();
+
         const linkDetails = document.getElementById('link-rect-details');
 
         if (data.submitted) {
@@ -329,8 +339,13 @@ async function checkRectificationStatus(code) {
 
 async function checkCarnetStatus(dni) {
     try {
-        const res = await fetch(`/services/carne/api/student/status/${dni}`);
-        const data = await res.json();
+        const res = await fetch(`/services/rectification/api/status/${code}`, {
+    headers: { 'Accept': 'application/json' }
+});
+const ct = res.headers.get('content-type') || '';
+if (!ct.includes('application/json')) throw new Error('Respuesta no JSON');
+const data = await res.json();
+
         const linkDetails = document.getElementById('link-carnet-details');
 
         if (data.submitted) {
@@ -425,4 +440,5 @@ function showDetailsModal(changes) {
         if (e.target === m) m.classList.add('hidden');
     };
 }
+
 
