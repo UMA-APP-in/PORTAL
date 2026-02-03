@@ -40,11 +40,19 @@ const btnLogout = document.getElementById('btn-logout');
         // No cached data, fetch fresh
         try {
             const response = await fetch(API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ codigo, dni })
-            });
-            const data = await response.json();
+    method: 'POST',
+    headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+    },
+    body: JSON.stringify({ codigo, dni })
+});
+
+// Safer JSON parse
+const ct = response.headers.get('content-type') || '';
+if (!ct.includes('application/json')) throw new Error('Respuesta no JSON');
+const data = await response.json();
+
             if (data.ok && data.student) {
                 sessionStorage.setItem('dashboard_student', JSON.stringify(data.student));
                 renderDashboard(data.student);
@@ -81,14 +89,18 @@ loginForm.addEventListener('submit', async (e) => {
 
     try {
         const response = await fetch(API_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ codigo, dni })
-        });
+    method: 'POST',
+    headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+    },
+    body: JSON.stringify({ codigo, dni })
+});
 
-        const data = await response.json();
+// Safer JSON parse
+const ct = response.headers.get('content-type') || '';
+if (!ct.includes('application/json')) throw new Error('Respuesta no JSON');
+const data = await response.json();
 
         if (!data.ok) {
             throw new Error(data.error || 'Credenciales inválidas');
@@ -413,3 +425,4 @@ function showDetailsModal(changes) {
         if (e.target === m) m.classList.add('hidden');
     };
 }
+
